@@ -94,8 +94,6 @@ class Container implements ContainerInterface, AttachableContainer
             return (float) $value;
         }
 
-        var_dump($value);
-
         return trim($value, '\'"');
     }
 
