@@ -1,0 +1,17 @@
+{
+    "autoload": {
+        "psr-4": {
+            "Onion\\Framework\\Common\\": "src/"
+        },
+        "files": [
+            "src/functions.php"
+        ]
+    },
+    "require": {
+        "onion/interfaces": "^2.0"
+    },
+    "require-dev": {
+        "roave/security-advisories": "dev-master"
+    }
+
+}
