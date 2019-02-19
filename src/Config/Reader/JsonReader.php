@@ -8,7 +8,7 @@ class JsonReader implements ReaderInterface
     public function parse(string $filename): array
     {
         if (!file_exists($filename)) {
-            throw new \InvalidArgumentException("Unable to parse {$file}");
+            throw new \InvalidArgumentException("Unable to parse {$filename}");
         }
 
         return json_decode(file_get_contents($filename), true);
