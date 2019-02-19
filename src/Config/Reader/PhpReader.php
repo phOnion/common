@@ -8,6 +8,10 @@ class PhpReader implements ReaderInterface
 {
     public function parse(string $filename): array
     {
+        if (!file_exists($filename)) {
+            throw new \InvalidArgumentException("Unable to parse {$file}");
+        }
+
         return include $filename;
     }
 }
