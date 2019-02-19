@@ -56,12 +56,12 @@ class Loader implements LoaderInterface
                 throw new \RuntimeException("No reader registered for extension '{$item->getExtension()}'");
             }
 
-            $configuration = merge($configuration, $this->readers[$item->getExtension()]->parse(
+            $configuration = merge($configuration, normalize_tree_keys($this->readers[$item->getExtension()]->parse(
                 $item->getRealPath()
-            ));
+            )), $this->separator);
         }
 
-        return normalize_tree_keys($configuration, $this->separator);
+        return $configuration;
     }
 
     public function loadDirectories(string $environment, array $directories): array
