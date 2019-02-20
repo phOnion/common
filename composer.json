@@ -4,7 +4,8 @@
             "Onion\\Framework\\Common\\": "src/"
         },
         "files": [
-            "src/functions.php"
+            "src/functions.php",
+            "src/interop.php"
         ]
     },
     "require": {
