@@ -32,14 +32,15 @@ if (!function_exists(__NAMESPACE__ . '\normalize_tree_keys')) {
      */
     function normalize_tree_keys(array $input, string $separator = '.') {
         $result = [];
+        $temp = [];
         foreach ($input as $k => $value) {
-            $pointer = &$result;
+            $pointer = &$temp;
             $keys = explode('.', $k);
 
             while (count($keys) > 1) {
                 $key = array_shift($keys);
 
-                if (!isset($pointer[$key]) || !is_array($pointer[$key])) {
+                if (!isset($pointer[$key])) {
                     $pointer = [];
                 }
 
@@ -48,6 +49,8 @@ if (!function_exists(__NAMESPACE__ . '\normalize_tree_keys')) {
 
             $pointer[array_shift($keys)] = is_array($value) ?
                 normalize_tree_keys($value, $separator) : $value;
+
+            $result = merge($result, $temp);
         }
 
         return $result;
