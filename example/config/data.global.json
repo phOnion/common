@@ -1,3 +1,4 @@
 {
-    "site.name": "My Awesome Website"
+    "site.name": "My Awesome Website",
+    "user.name": "Your Home: env:HOME"
 }

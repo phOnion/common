@@ -23,16 +23,17 @@ $loader->registerReader(['json'], new JsonReader);
 $configuration = new Container(
     $loader->loadDirectory('development', __DIR__ . '/config'),
     [
-        'env' => 'getenv',
         'connect' => function (string $host, int $port, string $user, string $password) {
             return "db://{$user}:{$password}@{$host}:{$port}";
-        }
+        },
     ]
 );
 
 var_dump(
+    $configuration->get('common.site.header'),
     $configuration->get('database'),
     $configuration->get('database.connection'),
-    $configuration->get('common')
+    $configuration->get('common'),
+    $configuration->get('user.name')
 );
 
