@@ -7,7 +7,7 @@ use Onion\Framework\Dependency\Interfaces\AttachableContainer;
 
 class Container implements ContainerInterface, AttachableContainer
 {
-    private const DETECTION_REGEX = '/^(?P<expression>(?P<operation>[a-z_\-]+)(?:\((?P<args>([^()]|(?R))*)\)|\:(?P<decorate>[^\s]+)))/i';
+    private const DETECTION_REGEX = '/(?P<expression>(?P<operation>[a-z_\-]+)(?:\((?P<args>([^()]|(?R))*)\)|\:(?P<decorate>[^\s]+)))/i';
 
     private $storage = [];
     private $handlers = [];
@@ -25,6 +25,7 @@ class Container implements ContainerInterface, AttachableContainer
             'has' => function ($key) {
                 return ($this->delegate ?? $this)->has($key);
             },
+            'env' => 'getenv',
         ], $handlers);
         $this->separator = $separator;
     }
@@ -100,30 +101,43 @@ class Container implements ContainerInterface, AttachableContainer
     private function processValue(string $value)
     {
         $value = trim($value);
-        preg_match(self::DETECTION_REGEX, $value, $matches);
+        preg_match_all(self::DETECTION_REGEX, $value, $matches, PREG_SET_ORDER);
 
-        if (isset($matches['operation']) && isset($this->handlers[$matches['operation']])) {
-            $handler = $this->handlers[$matches['operation']];
+        // $value
+        foreach ($matches as $match) {
+            $match = array_filter($match);
 
-            assert(is_callable($handler), new \UnexpectedValueException(
-                "Invalid handler registered for '{$matches['operation']}'"
-            ));
+            if (isset($match['operation']) && isset($this->handlers[$match['operation']])) {
+                $handler = $this->handlers[$match['operation']];
 
-            if (isset($matches['decorate'])) {
-                return $this->getTyped(str_replace(
-                    $matches['expression'],
-                    call_user_func($handler, $this->getTyped($matches['decorate'])),
-                     $value
+                assert(is_callable($handler), new \UnexpectedValueException(
+                    "Invalid handler registered for '{$match['operation']}'"
                 ));
-            }
 
-            if (isset($matches['args'])) {
-                $args = explode(',', $matches['args']);
-                $args = array_map(function ($value) {
-                    return $this->processValue($value);
-                }, $args);
+                $result = null;
+                if (isset($match['decorate'])) {
+                    $result = $this->getTyped(call_user_func($handler, $this->getTyped($match['decorate'])));
+                }
 
-                return call_user_func_array($handler, $args);
+                if (isset($match['args'])) {
+                    $args = explode(',', $match['args']);
+                    $args = array_map(function ($value) {
+                        return $this->processValue($value);
+                    }, $args);
+
+                    $result = call_user_func_array($handler, $args);
+                }
+
+                if ($result !== null) {
+                    if (!is_scalar($result)) {
+                        $type = gettype($result);
+                        throw new \LogicException(
+                            "Bad template value, cannot use {$type} as string"
+                        );
+                    }
+
+                    $value = $this->getTyped(str_replace($match['expression'], $result, $value));
+                }
             }
         }
 
