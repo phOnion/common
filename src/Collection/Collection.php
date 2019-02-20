@@ -5,7 +5,7 @@ namespace Onion\Framework\Common\Collection;
 
 use Onion\Framework\Common\Collection\Interfaces\CollectionInterface;
 
-class Collection implements CollectionInterface
+class Collection implements CollectionInterface, \Countable
 {
     private $items;
 
@@ -108,5 +108,14 @@ class Collection implements CollectionInterface
     public function valid(): bool
     {
         return $this->items->valid();
+    }
+
+    public function count()
+    {
+        if (!is_countable($this->items)) {
+            return count(iterator_to_array($this));
+        }
+
+        return count($this->items);
     }
 }
