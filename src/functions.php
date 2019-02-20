@@ -114,3 +114,73 @@ if (!function_exists(__NAMESPACE__ . '\find_by_separator')) {
     }
 }
 
+if (!function_exists(__NAMESPACE__ . '\msort')) {
+    function msort($items, \Closure $callable) {
+        $size = count($items);
+        if (1 >= $size) {
+            return $items;
+        }
+
+        $merge = function ($left, $right) use ($callable) {
+            $result = [];
+            $leftTotal = count($left);
+            $rightTotal = count($right);
+            $leftIndex = $rightIndex = 0;
+
+            while ($leftIndex < $leftTotal && $rightIndex < $rightTotal) {
+                $position = $callable($left[$leftIndex], $right[$rightIndex]);
+
+                switch ($position) {
+                    case 1:
+                        $result[] = $right[$rightIndex];
+                        $rightIndex++;
+                        break;
+                    case -1:
+                    default:
+                        $result[] = $left[$leftIndex];
+                        $leftIndex++;
+                        break;
+                }
+            }
+
+            while ($leftIndex<$leftTotal) {
+                $result[] = $left[$leftIndex];
+                $leftIndex++;
+            }
+
+            while ($rightIndex<$rightTotal) {
+                $result[] = $right[$rightIndex];
+                $rightIndex++;
+            }
+
+            return $result;
+        };
+
+        $middle = (int) round($size / 2, 0, PHP_ROUND_HALF_UP);
+        $left = msort(array_slice($items, 0, $middle), $callable);
+        $right = msort(array_slice($items, $middle), $callable);
+
+        return $merge($left, $right);
+    }
+}
+
+if (!function_exists(__NAMESPACE__ . '\isort')) {
+    function isort($items, \Closure $callback) {
+        $size = count($items);
+
+        for ($i=0; $i<$size; $i++) {
+            $val = $items[$i];
+            $j = $i-1;
+
+            while ($j>= 0 && $callback($items[$j], $val) === 1) {
+                $items[$j+1] = $items[$j];
+                $j--;
+            }
+
+            $items[$j+1] = $val;
+        }
+
+        return $items;
+    }
+}
+
