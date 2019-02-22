@@ -3,16 +3,12 @@ namespace Onion\Framework\Common\Hydrator;
 
 use Onion\Framework\Hydrator\Interfaces\HydratableInterface;
 
-class MethodHydrator
+trait MethodHydrator
 {
-    public const USE_SNAKE_CASE = 1;
-    public const USE_RAW_KEYS = 2;
-    public const EXTRACT_ALT_GETTERS = 4;
-
     public function hydrate(iterable $data, int $options = 0): HydratableInterface
     {
         $target = clone $this;
-        if (!($options & self::USE_RAW_KEYS === self::USE_RAW_KEYS)) {
+        if (($options & self::USE_RAW_KEYS) !== self::USE_RAW_KEYS) {
             $underscoreKeys = ($options & self::USE_SNAKE_CASE) === self::USE_SNAKE_CASE;
             $getSetterName = $underscoreKeys ?
                 function ($name): string {
@@ -21,6 +17,7 @@ class MethodHydrator
                 function ($name): string {
                     return 'set' . \ucfirst(\str_replace('_', '', $name));
                 };
+
         } else {
             $getSetterName = function ($name): string {
                 return $name;
@@ -37,63 +34,66 @@ class MethodHydrator
         return $target;
     }
 
-    public function extract(iterable $keys = [], int $options = 0)
+    public function extract(iterable $keys = [], int $options = 0): iterable
     {
-        $target = clone $this;
+        $target = [];
 
-        $includeIsAndHas = $options & self::EXTRACT_ALT_GETTERS;
-        $underscoreKeys = false;
+        $includeIsAndHas = ($options & self::EXTRACT_ALT_GETTERS) === self::EXTRACT_ALT_GETTERS;
+        $underscoreKeys = ($options & self::USE_SNAKE_CASE) === self::USE_SNAKE_CASE;
 
-        if (!($options & self::USE_RAW_KEYS === self::USE_RAW_KEYS)) {
-            $underscoreKeys = ($options & self::USE_SNAKE_CASE) === self::USE_SNAKE_CASE;
-            $getGetterName = $underscoreKeys ?
-                function ($name): string {
-                    return strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $name));
-                } :
-                function ($name): string {
-                    return \str_replace('_', '', \ucwords($name, '_'));
-                };
-        } else {
-            $getGetterName = function ($name): string {
-                return $name;
+        $getGetterName = $underscoreKeys ?
+            function ($name): string {
+                return strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $name));
+            } :
+            function ($name): string {
+                return \str_replace('_', '', \ucwords($name, '_'));
             };
-        }
+
+
 
         $extractor = \Closure::bind(function () {
-            return \get_object_vars($this);
+            return \array_keys(\get_object_vars($this));
         }, $this, static::class);
 
         $result = [];
 
+
         foreach ($extractor() as $key) {
             $name =  $getGetterName($key);
+            if (($options & self::USE_RAW_KEYS) !== self::USE_RAW_KEYS) {
+                $key = strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $name));
+            }
+
             if ($keys !== [] && !\in_array($name, $keys)) {
                 continue;
             }
 
-            $getterName = $underscoreKeys ? "get_{$name}" : "get{$name}";
+            $getterName = $underscoreKeys ? strtolower("get_{$name}") : 'get'.ucfirst($name);
             $name = \lcfirst($name);
 
+
             if (\method_exists($this, $getterName)) {
-                $result[$name] = $target->{$getterName}();
+                $result[$key] = $this->{$getterName}();
                 continue;
             }
 
+
             if ($includeIsAndHas) {
                 $getterName = $underscoreKeys ? "is_{$name}" : "is{$name}";
+                var_dump($getterName);
                 if (\method_exists($this, $getterName)) {
-                    $result[$name] = $target->{$getterName}();
+                    $result[$key] = $this->{$getterName}();
                     continue;
                 }
 
                 $getterName = $underscoreKeys ? "has_{$name}" : "has{$name}";
                 if (\method_exists($this, $getterName)) {
-                    $result[$name] = $target->{$getterName}();
+                    $result[$key] = $this->{$getterName}();
                     continue;
                 }
             }
         }
 
-        return $target;
+        return $result;
     }
 }
