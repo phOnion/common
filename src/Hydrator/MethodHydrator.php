@@ -7,6 +7,7 @@ trait MethodHydrator
 {
     public function hydrate(iterable $data, int $options = 0): HydratableInterface
     {
+        /** @var HydratableInterface $target */
         $target = clone $this;
         if (($options & self::USE_RAW_KEYS) !== self::USE_RAW_KEYS) {
             $underscoreKeys = ($options & self::USE_SNAKE_CASE) === self::USE_SNAKE_CASE;
@@ -20,7 +21,7 @@ trait MethodHydrator
 
         } else {
             $getSetterName = function ($name): string {
-                return $name;
+                return "set{$name}";
             };
         }
 
@@ -36,64 +37,42 @@ trait MethodHydrator
 
     public function extract(iterable $keys = [], int $options = 0): iterable
     {
-        $target = [];
-
         $includeIsAndHas = ($options & self::EXTRACT_ALT_GETTERS) === self::EXTRACT_ALT_GETTERS;
         $underscoreKeys = ($options & self::USE_SNAKE_CASE) === self::USE_SNAKE_CASE;
+        $useRawKeys = ($options & self::USE_RAW_KEYS) === self::USE_RAW_KEYS;
 
-        $getGetterName = $underscoreKeys ?
-            function ($name): string {
-                return strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $name));
-            } :
-            function ($name): string {
-                return \str_replace('_', '', \ucwords($name, '_'));
-            };
+        $extractor = function () use ($includeIsAndHas) {
+            return array_filter(get_class_methods(static::class), function ($name) use ($includeIsAndHas) {
+                $is = $has = false;
 
+                if ($includeIsAndHas) {
+                    $is = substr($name, 0, 2) === 'is';
+                    $has = substr($name, 0, 3) === 'has';
+                }
 
+                if ($is || $has) {
+                    return true;
+                }
 
-        $extractor = \Closure::bind(function () {
-            return \array_keys(\get_object_vars($this));
-        }, $this, static::class);
+                return substr($name, 0, 3) === 'get';
+            });
+        };
 
         $result = [];
-
-
-        foreach ($extractor() as $key) {
-            $name =  $getGetterName($key);
-            if (($options & self::USE_RAW_KEYS) !== self::USE_RAW_KEYS) {
+        foreach ($extractor() as $name) {
+            $key = $name;
+            if (!$useRawKeys || $underscoreKeys) {
                 $key = strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $name));
             }
+            $key = trim(preg_replace('/^(get|is|has)/', '', $key), '_');
 
-            if ($keys !== [] && !\in_array($name, $keys)) {
-                continue;
-            }
-
-            $getterName = $underscoreKeys ? strtolower("get_{$name}") : 'get'.ucfirst($name);
-            $name = \lcfirst($name);
-
-
-            if (\method_exists($this, $getterName)) {
-                $result[$key] = $this->{$getterName}();
-                continue;
-            }
-
-
-            if ($includeIsAndHas) {
-                $getterName = $underscoreKeys ? "is_{$name}" : "is{$name}";
-                var_dump($getterName);
-                if (\method_exists($this, $getterName)) {
-                    $result[$key] = $this->{$getterName}();
-                    continue;
-                }
-
-                $getterName = $underscoreKeys ? "has_{$name}" : "has{$name}";
-                if (\method_exists($this, $getterName)) {
-                    $result[$key] = $this->{$getterName}();
-                    continue;
-                }
-            }
+            // $getterName = $underscoreKeys ? strtolower("get_{$name}") : 'get'.ucfirst($name);
+            $name = $name;
+            $result[$key] = $this->{$name}();
         }
 
-        return $result;
+        return array_filter($result, function ($key) use ($keys) {
+            return in_array($key, $keys);
+        }, ARRAY_FILTER_USE_KEY);
     }
 }
