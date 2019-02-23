@@ -118,4 +118,9 @@ class Collection implements CollectionInterface, \Countable
 
         return count($this->items);
     }
+
+    public function keys(): CollectionInterface
+    {
+        return new self(array_keys(iterator_to_array($this, true)));
+    }
 }
