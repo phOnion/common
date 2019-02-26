@@ -13,4 +13,5 @@ interface CollectionInterface extends Iterator
     public function slice(int $offset, int $limit = -1): CollectionInterface;
     public function find($item);
     public function keys(): CollectionInterface;
+    public function each(\Closure $callback): void;
 }

@@ -123,4 +123,11 @@ class Collection implements CollectionInterface, \Countable
     {
         return new self(array_keys(iterator_to_array($this, true)));
     }
+
+    public function each(\Closure $callback): void
+    {
+        foreach ($this as $key => $value) {
+            $callback($value, $key);
+        }
+    }
 }
