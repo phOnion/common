@@ -13,7 +13,7 @@ class Loader implements LoaderInterface
     private $readers = [];
     private $separator = [];
 
-    public function __construct(string $defaultSeparator = null)
+    public function __construct(string $defaultSeparator = self::DEFAULT_KEY_SEPARATOR)
     {
         $this->separator = $defaultSeparator ?? self::DEFAULT_KEY_SEPARATOR;
     }
