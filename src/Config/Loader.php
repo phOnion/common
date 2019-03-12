@@ -11,11 +11,11 @@ class Loader implements LoaderInterface
     private const DEFAULT_KEY_SEPARATOR = '.';
 
     private $readers = [];
-    private $separator = [];
+    private $separator;
 
     public function __construct(string $defaultSeparator = self::DEFAULT_KEY_SEPARATOR)
     {
-        $this->separator = $defaultSeparator ?? self::DEFAULT_KEY_SEPARATOR;
+        $this->separator = $defaultSeparator;
     }
 
     public function registerReader(array $extensions, ReaderInterface $reader): void
