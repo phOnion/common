@@ -30,12 +30,12 @@ if (!function_exists(__NAMESPACE__ . '\normalize_tree_keys')) {
     /**
      * Builds a tree of normalized single-value keys from
      */
-    function normalize_tree_keys(array $input, string $separator = '.') {
+    function normalize_tree_keys(iterable $input, string $separator = '.') {
         $result = [];
-        $temp = [];
         foreach ($input as $k => $value) {
+            $temp = [];
             $pointer = &$temp;
-            $keys = explode('.', $k);
+            $keys = explode($separator, $k);
 
             while (count($keys) > 1) {
                 $key = array_shift($keys);
@@ -74,43 +74,6 @@ if (!function_exists(__NAMESPACE__ . '\find_by_separator')) {
         }
 
         return $index;
-        //     $cursor .= '.' . array_shift($fragments);
-        //     $cursor = ltrim($cursor, '.');
-
-        //     while (!isset($storage[$cursor])) {
-        //         if ($fragments === []) {
-        //             $message = "Unable to resolve path '{$cursor}'";
-        //             if ($cursor !== $key) {
-        //                 $message .= " of {$key}";
-        //             }
-
-        //             throw new \LogicException($message);
-        //         }
-
-        //         $cursor .= '.' . array_shift($fragments);
-        //     }
-
-        //     $result = $storage[$cursor];
-
-        //     if ($fragments !== [] && is_array($result)) {
-        //         $path = implode('.', $fragments);
-        //         try {
-        //             return find_by_dots($result, $path);
-        //         } catch (\LogicException $ex) {
-        //             if ($fragments !== []) {
-        //                 continue;
-        //             }
-
-        //             throw new \LogicException(
-        //                 "Unable to resolve after '{$cursor}' of '{$key}'",
-        //                 $ex->getCode(),
-        //                 $ex
-        //             );
-        //         }
-        //     }
-        // }
-
-        // return $result;
     }
 }
 
