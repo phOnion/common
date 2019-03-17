@@ -1,9 +1,9 @@
 <?php
 namespace Onion\Framework\Common\Config;
 
-use Psr\Container\ContainerInterface;
 use function Onion\Framework\Common\find_by_separator;
 use Onion\Framework\Dependency\Interfaces\AttachableContainer;
+use Psr\Container\ContainerInterface;
 
 class Container implements ContainerInterface, AttachableContainer
 {
@@ -18,12 +18,13 @@ class Container implements ContainerInterface, AttachableContainer
     public function __construct(array $configuration, array $handlers = [], string $separator = '.')
     {
         $this->storage = $configuration;
+        $this->delegate = $this;
         $this->handlers = array_merge([
             'get' => function ($key) {
-                return ($this->delegate ?? $this)->get($key);
+                return $this->delegate->get($key);
             },
             'has' => function ($key) {
-                return ($this->delegate ?? $this)->has($key);
+                return $this->delegate->has($key);
             },
             'env' => 'getenv',
         ], $handlers);
@@ -47,10 +48,7 @@ class Container implements ContainerInterface, AttachableContainer
         }
 
         if (is_array($value)) {
-            $enum = implode('|', array_keys($this->handlers));
-            $pattern = "/^{$enum}(?:\(|\:)/i";
-
-            return $this->filterMetaValues($value, $pattern);
+            return new self($value, $this->handlers, $this->separator);
         }
 
         return $value;
