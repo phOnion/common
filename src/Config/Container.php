@@ -48,6 +48,10 @@ class Container implements ContainerInterface, AttachableContainer
         }
 
         if (is_array($value)) {
+            if (isset($value[0])) {
+                return $value;
+            }
+
             return new self($value, $this->handlers, $this->separator);
         }
 
