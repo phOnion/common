@@ -79,7 +79,7 @@ class Loader implements LoaderInterface
     {
         if (!file_exists($filename)) {
             throw new \InvalidArgumentException(
-                "Provided file '{$file}' does not exist or is not readable"
+                "Provided file '{$filename}' does not exist or is not readable"
             );
         }
 
