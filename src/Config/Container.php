@@ -7,7 +7,7 @@ use Psr\Container\ContainerInterface;
 
 class Container implements ContainerInterface, AttachableContainer
 {
-    private const DETECTION_REGEX = '/(?P<expression>(?P<operation>[a-z_\-]+)(?:\((?P<args>([^()]|(?R))*)\)|\:(?P<decorate>[^\s]+)))/i';
+    private const DETECTION_REGEX = '/(?|(?P<expression>(?P<operation>[a-z_\-]+)(?:\((?P<args>([^()]+)|(?R))*\)|\:(?P<decorate>[^\s]+))))/i';
 
     private $storage = [];
     private $handlers = [];
