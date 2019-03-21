@@ -1,9 +1,11 @@
 <?php
 namespace Onion\Framework\Common\Collection;
 
-class NumericCollection extends Collection
+use Onion\Framework\Common\Collection\Interfaces\CollectionInterface;
+
+class NumericCollection extends Collection implements CollectionInterface
 {
-    public function sum(): int
+    public function sum()
     {
         $result = 0;
         foreach ($this as $number) {
@@ -13,12 +15,12 @@ class NumericCollection extends Collection
         return $number;
     }
 
-    public function min(): int
+    public function min()
     {
         return min(...$this->raw());
     }
 
-    public function max(): int
+    public function max()
     {
         return max(...$this->raw());
     }
