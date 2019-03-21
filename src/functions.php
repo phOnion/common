@@ -147,3 +147,57 @@ if (!function_exists(__NAMESPACE__ . '\isort')) {
     }
 }
 
+if (!function_exists(__NAMESPACE__ . '\generator')) {
+    function generator(callable $generatorFn): \Iterator
+    {
+        return new class($generatorFn) implements \Iterator
+        {
+            private $function;
+            private $iterable;
+
+            public function __construct(callable $callable)
+            {
+                $this->function = $callable;
+                $generator = call_user_func($this->function);
+                if (!$generator instanceof \Generator) {
+                    throw new \InvalidArgumentException('Provided callback must be a valid generator');
+                }
+
+                $this->iterable = $generator;
+            }
+
+            public function rewind()
+            {
+                $callback = $this->function;
+
+                $this->iterable = $callback();
+            }
+
+            public function next()
+            {
+                $this->iterable->next();
+            }
+
+            public function key()
+            {
+                return $this->iterable->key();
+            }
+
+            public function current()
+            {
+                return $this->iterable->current();
+            }
+
+            public function valid()
+            {
+                return $this->iterable->valid();
+            }
+
+            public function __clone()
+            {
+                $this->iterable = call_user_func($this->function);
+            }
+        };
+    }
+}
+
