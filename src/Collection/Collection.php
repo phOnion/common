@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 namespace Onion\Framework\Common\Collection;
 
-use Onion\Framework\Common\Collection\Interfaces\CollectionInterface;
 use function Onion\Framework\Common\generator;
+use Onion\Framework\Common\Collection\Interfaces\CollectionInterface;
 
 class Collection implements CollectionInterface, \Countable
 {
@@ -22,7 +22,7 @@ class Collection implements CollectionInterface, \Countable
     public function map(callable $callback): CollectionInterface
     {
         $self = clone $this;
-        return new self(generator(function () use ($self, $callback) {
+        return new static(generator(function () use ($self, $callback) {
             foreach ($self as $key => $value) {
                 yield $key => call_user_func($callback, $value);
             }
@@ -31,14 +31,14 @@ class Collection implements CollectionInterface, \Countable
 
     public function filter(callable $callback): CollectionInterface
     {
-        return new self(new \CallbackFilterIterator($this, $callback));
+        return new static(new \CallbackFilterIterator($this, $callback));
     }
 
     public function sort(callable $callback, string $sortFunction = 'usort'): CollectionInterface
     {
         $items = iterator_to_array($this);
 
-        return new self(call_user_func($sortFunction, $items, $callback));
+        return new static(call_user_func($sortFunction, $items, $callback));
     }
 
     public function reduce(callable $callback, $initial = null)
@@ -53,7 +53,7 @@ class Collection implements CollectionInterface, \Countable
 
     public function slice(int $offset, int $limit = -1): CollectionInterface
     {
-        return new self(
+        return new static(
             new \LimitIterator($this, $offset, $limit)
         );
     }
@@ -106,12 +106,12 @@ class Collection implements CollectionInterface, \Countable
 
     public function keys(): CollectionInterface
     {
-        return new self(array_keys($this->raw()));
+        return new static(array_keys($this->raw()));
     }
 
     public function values(): CollectionInterface
     {
-        return new self(array_values($this->raw()));
+        return new static(array_values($this->raw()));
     }
 
     public function each(callable $callback): void
@@ -139,7 +139,7 @@ class Collection implements CollectionInterface, \Countable
 
         $iterator->append($items);
 
-        return new self($iterator);
+        return new static($iterator);
     }
 
     public function prepend(iterable $items)
@@ -151,7 +151,7 @@ class Collection implements CollectionInterface, \Countable
         $iterator = new \AppendIterator($items);
         $iterator->append($this);
 
-        return new self($iterator);
+        return new static($iterator);
     }
 
     public function unique(): CollectionInterface
@@ -170,7 +170,7 @@ class Collection implements CollectionInterface, \Countable
             }
         }
 
-        return new self($items);
+        return new static($items);
     }
 
     public function contains($item)
@@ -186,7 +186,7 @@ class Collection implements CollectionInterface, \Countable
         foreach ($self as $key => $item) {
             foreach ($elements as $element) {
                 if (!$element instanceof CollectionInterface) {
-                    $element = new self($element);
+                    $element = new static($element);
                 }
 
                 if (!$element->contains($item)) {
@@ -197,7 +197,7 @@ class Collection implements CollectionInterface, \Countable
             $result[$key] = $item;
         }
 
-        return new self($result);
+        return new static($result);
     }
 
     public function diff(iterable ... $elements)
@@ -208,7 +208,7 @@ class Collection implements CollectionInterface, \Countable
             foreach ($self as $key => $value) {
                 foreach ($elements as $element) {
                     if (!$element instanceof CollectionInterface) {
-                        $element = new self($element);
+                        $element = new static($element);
                     }
 
                     if ($element->contains($value)) {
@@ -220,7 +220,7 @@ class Collection implements CollectionInterface, \Countable
             }
         };
 
-        return new self(generator($generator));
+        return new static(generator($generator));
     }
 
     public function combine(iterable $values, int $mode = self::USE_VALUES_ONLY)
@@ -255,7 +255,7 @@ class Collection implements CollectionInterface, \Countable
             }
         };
 
-        return new self(generator($generator));
+        return new static(generator($generator));
     }
 
     public function pad(int $length, $padding, int $direction = self::PAD_RIGHT)
@@ -287,7 +287,7 @@ class Collection implements CollectionInterface, \Countable
 
     public function reverse()
     {
-        return new self(array_reverse($this->raw(), true));
+        return new static(array_reverse($this->raw(), true));
     }
 
     public function flip()
@@ -300,7 +300,7 @@ class Collection implements CollectionInterface, \Countable
             }
         };
 
-        return new self(generator($generator));
+        return new static(generator($generator));
     }
 
     public function validate(callable $callback)
@@ -312,16 +312,6 @@ class Collection implements CollectionInterface, \Countable
         }
 
         return true;
-    }
-
-    public function assert(callable $assert, \Throwable $exception)
-    {
-        $self = clone $this;
-        if (!$self->validate($assert)) {
-            throw $exception;
-        }
-
-        return $this;
     }
 
     public function when(callable $expression, callable $callback)
@@ -343,13 +333,13 @@ class Collection implements CollectionInterface, \Countable
             $result[call_user_func($grouping, $value, $key)][] = $value;
         }
 
-        return new self($result);
+        return new static($result);
     }
 
     public function join(iterable ... $iterables)
     {
         $self = clone $this;
-        return new self(generator(function () use ($iterables, $self) {
+        return new static(generator(function () use ($iterables, $self) {
             foreach ($iterables as $iterable) {
                 foreach ($iterable as $element) {
                     foreach ($self as $index => $item) {
@@ -363,7 +353,7 @@ class Collection implements CollectionInterface, \Countable
     public function serialize(string $serializeFn = 'serialize')
     {
         $self = clone $this;
-        return new self(generator(function () use ($self, $serializeFn) {
+        return new static(generator(function () use ($self, $serializeFn) {
             foreach ($self as $key => $value) {
                 yield $key => call_user_func($serializeFn, $value);
             }
@@ -373,7 +363,7 @@ class Collection implements CollectionInterface, \Countable
     public function unserialize(string $unserializeFn = 'unserialize')
     {
         $self = clone $this;
-        return new self(generator(function () use ($self, $unserializeFn) {
+        return new static(generator(function () use ($self, $unserializeFn) {
             foreach ($self as $key => $value) {
                 yield $key => call_user_func($unserializeFn, $value);
             }

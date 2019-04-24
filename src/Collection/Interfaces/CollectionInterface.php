@@ -38,7 +38,6 @@ interface CollectionInterface extends \Iterator
     public function reverse();
     public function flip();
     public function validate(callable $callback);
-    public function assert(callable $assert, \Throwable $exception);
     public function when(callable $expression, callable $callback);
     public function group(callable $grouping);
     public function join(iterable ...$iterables);

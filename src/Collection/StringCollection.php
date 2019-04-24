@@ -9,7 +9,7 @@ class StringCollection extends Collection implements CollectionInterface
     public function lowercase(int $mode = self::USE_VALUES_ONLY)
     {
         $self = clone $this;
-        return new self(generator(function () use ($self, $mode) {
+        return new static(generator(function () use ($self, $mode) {
             foreach ($self as $key => $value) {
                 if (($mode & self::USE_KEYS_ONLY) === self::USE_KEYS_ONLY) {
                     $key = strtolower($key);
@@ -27,7 +27,7 @@ class StringCollection extends Collection implements CollectionInterface
     public function uppercase(int $mode = self::USE_VALUES_ONLY): self
     {
         $self = clone $this;
-        return new self(generator(function () use ($self, $mode) {
+        return new static(generator(function () use ($self, $mode) {
             foreach ($self as $key => $value) {
                 if (($mode & self::USE_KEYS_ONLY) === self::USE_KEYS_ONLY) {
                     $key = strtoupper($key);
@@ -45,7 +45,7 @@ class StringCollection extends Collection implements CollectionInterface
     public function words(int $mode = self::USE_VALUES_ONLY, string $delimiter = " \t\r\n\f\v"): self
     {
         $self = clone $this;
-        return new self(generator(function () use ($self, $mode, $delimiter) {
+        return new static(generator(function () use ($self, $mode, $delimiter) {
             foreach ($self as $key => $value) {
                 if (($mode & self::USE_KEYS_ONLY) === self::USE_KEYS_ONLY && is_string($key)) {
                     $key = ucwords($key, $delimiter);
@@ -63,7 +63,7 @@ class StringCollection extends Collection implements CollectionInterface
     public function soundex(): self
     {
         $self = clone $this;
-        return new self(generator(function () use ($self) {
+        return new static(generator(function () use ($self) {
             foreach ($self as $key => $value) {
                 yield $key => soundex($value);
             }
@@ -73,7 +73,7 @@ class StringCollection extends Collection implements CollectionInterface
     public function metaphone(int $phonemes = 0): self
     {
         $self = clone $this;
-        return new self(generator(function () use ($self, $phonemes) {
+        return new static(generator(function () use ($self, $phonemes) {
             foreach ($self as $key => $value) {
                 yield $key => metaphone($value, $phonemes);
             }

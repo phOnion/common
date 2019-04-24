@@ -38,7 +38,7 @@ class NumericCollection extends Collection implements CollectionInterface
             return $items[$middle];
         }
 
-        return (new self(array_slice($items, --$middle, 2)))
+        return (new static(array_slice($items, --$middle, 2)))
             ->average();
     }
 

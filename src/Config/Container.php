@@ -52,7 +52,7 @@ class Container implements ContainerInterface, AttachableContainer
                 return $this->filterMetaValues($value);
             }
 
-            return new self($value, $this->handlers, $this->separator);
+            return new static($value, $this->handlers, $this->separator);
         }
 
         return $value;
