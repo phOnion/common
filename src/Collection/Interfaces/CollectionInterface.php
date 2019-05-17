@@ -6,7 +6,7 @@ interface CollectionInterface extends \Iterator
 {
     const USE_VALUES_ONLY = 1;
     const USE_KEYS_ONLY = 2;
-    const USE_BOTH = self::USE_KEYS | self::USE_BOTH;
+    const USE_BOTH = self::USE_KEYS_ONLY | self::USE_VALUES_ONLY;
 
     const PAD_LEFT = 3;
     const PAD_RIGHT = 4;

@@ -36,9 +36,10 @@ class Collection implements CollectionInterface, \Countable
 
     public function sort(callable $callback, string $sortFunction = 'usort'): CollectionInterface
     {
-        $items = iterator_to_array($this);
+        $items = $this->raw();
+        $sortFunction($items, $callback);
 
-        return new static(call_user_func($sortFunction, $items, $callback));
+        return new static($items);
     }
 
     public function reduce(callable $callback, $initial = null)

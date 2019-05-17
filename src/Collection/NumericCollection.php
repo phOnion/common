@@ -5,7 +5,7 @@ use Onion\Framework\Common\Collection\Interfaces\CollectionInterface;
 
 class NumericCollection extends Collection implements CollectionInterface
 {
-    public function sum()
+    public function sum(int $precision = 2)
     {
         $result = 0;
         foreach ($this as $number) {
@@ -15,17 +15,17 @@ class NumericCollection extends Collection implements CollectionInterface
         return $number;
     }
 
-    public function min()
+    public function min(int $precision = 2)
     {
-        return min(...$this->raw());
+        return round(min(...$this->raw()), $precision);
     }
 
-    public function max()
+    public function max(int $precision = 2)
     {
-        return max(...$this->raw());
+        return round(max(...$this->raw()), $precision);
     }
 
-    public function median()
+    public function median(int $precision = 2)
     {
         $items = $this->sort(function ($left, $right) {
             return $left <=> $right;
@@ -35,11 +35,13 @@ class NumericCollection extends Collection implements CollectionInterface
 
         $middle = (int) $count / 2;
         if ($count % 2 === 0) {
-            return $items[$middle];
+            return round($items[$middle], $precision);
         }
 
-        return (new static(array_slice($items, --$middle, 2)))
-            ->average();
+        return round(
+            (new static(array_slice($items, --$middle, 2)))->average(),
+            $precision
+        );
     }
 
     public function mode()
