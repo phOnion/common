@@ -35,7 +35,7 @@ if (!function_exists(__NAMESPACE__ . '\normalize_tree_keys')) {
         foreach ($input as $k => $value) {
             $temp = [];
             $pointer = &$temp;
-            $keys = explode($separator, trim($k, $separator));
+            $keys = explode($separator, trim((string) $k, $separator));
 
             while (count($keys) > 1) {
                 $key = array_shift($keys);
