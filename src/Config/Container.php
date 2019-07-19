@@ -48,7 +48,7 @@ class Container implements ContainerInterface, AttachableContainer
         }
 
         if (is_array($value)) {
-            if (isset($value[0])) {
+            if (isset($value[0]) || empty($value)) {
                 return $this->filterMetaValues($value);
             }
 
