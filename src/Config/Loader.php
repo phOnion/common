@@ -13,6 +13,8 @@ class Loader implements LoaderInterface
     private $readers = [];
     private $separator;
 
+    private $processed = [];
+
     public function __construct(string $defaultSeparator = self::DEFAULT_KEY_SEPARATOR)
     {
         $this->separator = $defaultSeparator;
@@ -56,9 +58,16 @@ class Loader implements LoaderInterface
                 throw new \RuntimeException("No reader registered for extension '{$item->getExtension()}'");
             }
 
-            $configuration = merge($configuration, normalize_tree_keys($this->readers[$item->getExtension()]->parse(
+            if (in_array($item->getRealPath(), $this->processed)) {
+                continue;
+            }
+
+            $target = normalize_tree_keys($this->readers[$item->getExtension()]->parse(
                 $item->getRealPath()
-            )), $this->separator);
+            ), $this->separator);
+
+            $configuration = merge($configuration, $target);
+            $this->processed[] = $item->getRealPath();
         }
 
         return $configuration;
