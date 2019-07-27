@@ -5,7 +5,7 @@ if (!function_exists(__NAMESPACE__ . '\merge')) {
     function merge(array $array1, array $array2): array
     {
         foreach ($array2 as $key => $value) {
-            if (array_key_exists($key, $array1)) {
+            if (isset($array1[$key])) {
                 if (is_int($key)) {
                     $array1[] = $value;
                     continue;
