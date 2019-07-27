@@ -2,6 +2,9 @@
 namespace Onion\Framework\Common\Config;
 
 use function Onion\Framework\Common\find_by_separator;
+use Onion\Framework\Common\Dependency\Traits\AttachableContainerTrait;
+use Onion\Framework\Common\Dependency\Traits\ContainerTrait;
+use Onion\Framework\Dependency\Exception\UnknownDependency;
 use Onion\Framework\Dependency\Interfaces\AttachableContainer;
 use Psr\Container\ContainerInterface;
 
@@ -15,6 +18,8 @@ class Container implements ContainerInterface, AttachableContainer
 
     private $delegate;
 
+    use ContainerTrait, AttachableContainerTrait;
+
     public function __construct(array $configuration, array $handlers = [], string $separator = '.')
     {
         $this->storage = $configuration;
@@ -27,21 +32,26 @@ class Container implements ContainerInterface, AttachableContainer
                 return $this->delegate->has($key);
             },
             'env' => 'getenv',
+            'wrap' => function ($key) {
+                return new static($this->get($key), $this->handlers, $this->separator);
+            }
         ], $handlers);
         $this->separator = $separator;
     }
 
-    /**
-     * @codeCoverageIgnore
-     */
-    public function attach(ContainerInterface $container): void
-    {
-        $this->delegate = $container;
-    }
-
     public function get($key)
     {
-        $value = find_by_separator($this->storage, $key, $this->separator);
+        assert(
+            $this->isKeyValid($key),
+            new \InvalidArgumentException('Invalid key. Expecting string, received ' . gettype($key))
+        );
+
+
+        try {
+            $value = find_by_separator($this->storage, $key, $this->separator);
+        } catch (\LogicException $ex) {
+            $value = $this->processValue($key);
+        }
 
         if (is_string($value) && $this->handlers !== []) {
             return $this->processValue($value);
@@ -51,8 +61,6 @@ class Container implements ContainerInterface, AttachableContainer
             if (isset($value[0]) || empty($value)) {
                 return $this->filterMetaValues($value);
             }
-
-            return new static($value, $this->handlers, $this->separator);
         }
 
         return $value;
@@ -60,7 +68,6 @@ class Container implements ContainerInterface, AttachableContainer
 
     private function filterMetaValues(array $values)
     {
-
         return array_map(function ($member) {
             if (is_array($member)) {
                 return $this->filterMetaValues($member);
@@ -77,27 +84,49 @@ class Container implements ContainerInterface, AttachableContainer
     public function has($key)
     {
         try {
-            find_by_separator($this->storage, $key, $this->separator);
+            find_by_separator($this->storage, $this->normalizeKey($key), $this->separator);
 
             return true;
-        } catch (\LogicException $ex) {
+        } catch (\LogicException | UnknownDependency $ex) {
             return false;
         }
     }
 
+    private function normalizeKey(string $key)
+    {
+        $count = preg_match_all(self::DETECTION_REGEX, $key, $matches, PREG_SET_ORDER);
+
+        if ($count > 0) {
+            $intermediate = $key;
+            foreach ($matches as $index => $match) {
+                $targetKey = !empty($match['args']) ? $match['args'] : $match['decorate'];
+                if ($index === 0) {
+                    $intermediate = $targetKey;
+                }
+                if ($intermediate !== $targetKey) {
+                    $targetKey = $this->get("{$match['operation']}({$targetKey})");
+                }
+            }
+
+            $key = $targetKey;
+        }
+
+        return $key;
+    }
+
     private function getTyped($value)
     {
-        $value = trim($value);
-        if (preg_match('/^\d+$/i', $value)) {
-            return (int) $value;
-        }
+            $value = trim($value);
+            if (preg_match('/^\d+$/i', $value)) {
+                return (int) $value;
+            }
 
-        // handle exponents and negative numbers
-        if (preg_match('/^[\-+]?[\d\.]+(?:[e\d+\-]+)?\d$/i', $value)) {
-            return (float) $value;
-        }
+            // handle exponents and negative numbers
+            if (preg_match('/^[\-+]?[\d\.]+(?:[e\d+\-]+)?\d$/i', $value)) {
+                return (float) $value;
+            }
 
-        return trim($value, '\'"');
+            return trim($value, '\'"');
     }
 
     private function processValue(string $value)
@@ -131,14 +160,13 @@ class Container implements ContainerInterface, AttachableContainer
                 }
 
                 if ($result !== null) {
-                    if (!is_scalar($result)) {
-                        $type = gettype($result);
-                        throw new \LogicException(
-                            "Bad template value, cannot use {$type} as string"
-                        );
+                    if (is_array($result)) {
+                        $result = $this->filterMetaValues($result);
+                    } elseif (is_scalar($result)) {
+                        $value = $this->getTyped(str_replace($match['expression'], $result, $value));
+                    } else {
+                        $value = $result;
                     }
-
-                    $value = $this->getTyped(str_replace($match['expression'], $result, $value));
                 }
             }
         }
