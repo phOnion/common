@@ -2,10 +2,10 @@
 namespace Onion\Framework\Common\Config;
 
 use function Onion\Framework\Common\find_by_separator;
+use Onion\Framework\Common\Dependency\Traits\AttachableContainerTrait;
+use Onion\Framework\Common\Dependency\Traits\ContainerTrait;
 use Onion\Framework\Dependency\Exception\UnknownDependency;
 use Onion\Framework\Dependency\Interfaces\AttachableContainer;
-use Onion\Framework\Dependency\Traits\AttachableContainerTrait;
-use Onion\Framework\Dependency\Traits\ContainerTrait;
 use Psr\Container\ContainerInterface;
 
 class Container implements ContainerInterface, AttachableContainer
