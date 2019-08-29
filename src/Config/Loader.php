@@ -99,7 +99,7 @@ class Loader implements LoaderInterface
         }
 
         return normalize_tree_keys(
-            $this->readers[$file->getExtension()]->parseFile(
+            $this->readers[$file->getExtension()]->parse(
                 $file->getRealPath()
             ),
             $this->separator
