@@ -9,8 +9,8 @@ trait MethodHydrator
     {
         /** @var HydratableInterface $target */
         $target = clone $this;
-        if (($options & self::USE_RAW_KEYS) !== self::USE_RAW_KEYS) {
-            $underscoreKeys = ($options & self::USE_SNAKE_CASE) === self::USE_SNAKE_CASE;
+        if (($options & HydratableInterface::USE_RAW_KEYS) !== HydratableInterface::USE_RAW_KEYS) {
+            $underscoreKeys = ($options & HydratableInterface::USE_SNAKE_CASE) === HydratableInterface::USE_SNAKE_CASE;
             $getSetterName = $underscoreKeys ?
                 function ($name): string {
                     return 'set_' . \strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $name));
@@ -35,11 +35,12 @@ trait MethodHydrator
         return $target;
     }
 
-    public function extract(iterable $keys = [], int $options = 0): iterable
+    public function extract(iterable $keys = [], int $options = HydratableInterface::EXCLUDE_EMPTY): iterable
     {
-        $includeIsAndHas = ($options & self::EXTRACT_ALT_GETTERS) === self::EXTRACT_ALT_GETTERS;
-        $underscoreKeys = ($options & self::USE_SNAKE_CASE) === self::USE_SNAKE_CASE;
-        $useRawKeys = ($options & self::USE_RAW_KEYS) === self::USE_RAW_KEYS;
+        $includeIsAndHas = ($options & HydratableInterface::EXTRACT_ALT_GETTERS) === HydratableInterface::EXTRACT_ALT_GETTERS;
+        $underscoreKeys = ($options & HydratableInterface::USE_SNAKE_CASE) === HydratableInterface::USE_SNAKE_CASE;
+        $useRawKeys = ($options & HydratableInterface::USE_RAW_KEYS) === HydratableInterface::USE_RAW_KEYS;
+        $extractEmpty = ($options & HydratableInterface::EXCLUDE_EMPTY) === HydratableInterface::EXCLUDE_EMPTY;
 
         $extractor = function () use ($includeIsAndHas) {
             return array_filter(get_class_methods(static::class), function ($name) use ($includeIsAndHas) {
@@ -71,8 +72,9 @@ trait MethodHydrator
             $result[$key] = $this->{$name}();
         }
 
-        return array_filter($result, function ($key) use ($keys) {
-            return in_array($key, $keys);
+        return array_filter($result, function ($key) use (&$result, &$keys, &$extractEmpty) {
+            return (in_array($key, $keys) || empty($keys)) &&
+                ($extractEmpty ? !empty($result[$key]) : true);
         }, ARRAY_FILTER_USE_KEY);
     }
 }
