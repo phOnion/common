@@ -35,41 +35,42 @@ trait MethodHydrator
         return $target;
     }
 
-    public function extract(iterable $keys = [], int $options = HydratableInterface::EXCLUDE_EMPTY): iterable
-    {
+    public function extract(iterable $keys = [], int $options = HydratableInterface::EXCLUDE_EMPTY): iterable {
         $includeIsAndHas = ($options & HydratableInterface::EXTRACT_ALT_GETTERS) === HydratableInterface::EXTRACT_ALT_GETTERS;
         $underscoreKeys = ($options & HydratableInterface::USE_SNAKE_CASE) === HydratableInterface::USE_SNAKE_CASE;
         $useRawKeys = ($options & HydratableInterface::USE_RAW_KEYS) === HydratableInterface::USE_RAW_KEYS;
         $extractEmpty = ($options & HydratableInterface::EXCLUDE_EMPTY) === HydratableInterface::EXCLUDE_EMPTY;
+        $preserveCase = ($options & HydratableInterface::PRESERVE_CASE) === HydratableInterface::PRESERVE_CASE;
 
         $extractor = function () use ($includeIsAndHas) {
-            return array_filter(get_class_methods(static::class), function ($name) use ($includeIsAndHas) {
-                $is = $has = false;
+            return array_filter(
+                get_class_methods(static::class),
+                function ($name) use ($includeIsAndHas) {
+                    $is = $has = false;
 
-                if ($includeIsAndHas) {
-                    $is = substr($name, 0, 2) === 'is';
-                    $has = substr($name, 0, 3) === 'has';
+                    if ($includeIsAndHas) {
+                        $is = substr($name, 0, 2) === 'is';
+                        $has = substr($name, 0, 3) === 'has';
+                    }
+
+                    if ($is || $has) {
+                        return true;
+                    }
+
+                    return substr($name, 0, 3) === 'get';
                 }
-
-                if ($is || $has) {
-                    return true;
-                }
-
-                return substr($name, 0, 3) === 'get';
-            });
+            );
         };
 
         $result = [];
         foreach ($extractor() as $name) {
             $key = $name;
             if (!$useRawKeys || $underscoreKeys) {
-                $key = strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $name));
+                $key = preg_replace('/(?<!^)[A-Z]/', '_$0', $name);
             }
             $key = trim(preg_replace('/^(get|is|has)/', '', $key), '_');
 
-            // $getterName = $underscoreKeys ? strtolower("get_{$name}") : 'get'.ucfirst($name);
-            $name = $name;
-            $result[$key] = $this->{$name}();
+            $result[$preserveCase ? $key : strtolower($key)] = $this->{$name}();
         }
 
         return array_filter($result, function ($key) use (&$result, &$keys, &$extractEmpty) {
