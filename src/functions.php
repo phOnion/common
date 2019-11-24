@@ -147,12 +147,24 @@ if (!function_exists(__NAMESPACE__ . '\isort')) {
     }
 }
 
+if (!function_exists(__NAMESPACE__ . '\is_cloneable')) {
+    function is_cloneable($object): bool {
+        try {
+            clone $object;
+
+            return true;
+        } catch (\Error $ex) {
+            return false;
+        }
+    }
+}
 if (!function_exists(__NAMESPACE__ . '\generator')) {
     function generator(callable $generatorFn): \Iterator
     {
         return new class($generatorFn) implements \Iterator
         {
             private $function;
+            /** @var \Generator */
             private $iterable;
 
             public function __construct(callable $callable)

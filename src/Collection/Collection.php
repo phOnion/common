@@ -4,19 +4,54 @@ declare(strict_types=1);
 namespace Onion\Framework\Common\Collection;
 
 use function Onion\Framework\Common\generator;
+use function Onion\Framework\Common\is_cloneable;
+
 use Onion\Framework\Common\Collection\Interfaces\CollectionInterface;
 
-class Collection implements CollectionInterface, \Countable
+class Collection implements CollectionInterface, \Countable, \ArrayAccess
 {
     private $items;
 
     public function __construct(iterable $items)
     {
-        if (is_array($items)) {
-            $items = new \ArrayIterator($items);
-        }
+        $this->items = generator(function () use ($items) {
+            foreach ($items as $key => $value) {
+                yield $key => $value;
+            }
+        });
+    }
 
-        $this->items = $items;
+    public function __clone()
+    {
+        if (\is_object($this->items) && is_cloneable($this->items)) {
+            $this->items = clone $this->items;
+        }
+    }
+
+    public function offsetSet($offset, $value)
+    {
+        $items = $this->raw();
+        $items[$offset] = $value;
+
+        $this->items = new static($items);
+    }
+
+    public function offsetGet($offset)
+    {
+        return $this->raw()[$offset] ?? null;
+    }
+
+    public function offsetExists($offset)
+    {
+        return isset($this->raw()[$offset]);
+    }
+
+    public function offsetUnset($offset)
+    {
+        $items = $this->raw();
+        unset($items[$offset]);
+
+        $this->items = new static($items);
     }
 
     public function map(callable $callback): CollectionInterface
@@ -24,14 +59,14 @@ class Collection implements CollectionInterface, \Countable
         $self = clone $this;
         return new static(generator(function () use ($self, $callback) {
             foreach ($self as $key => $value) {
-                yield $key => call_user_func($callback, $value);
+                yield $key => \call_user_func($callback, $value);
             }
         }));
     }
 
     public function filter(callable $callback): CollectionInterface
     {
-        return new static(new \CallbackFilterIterator($this, $callback));
+        return new static(new \CallbackFilterIterator(new \ArrayIterator($this->raw()), $callback));
     }
 
     public function sort(callable $callback, string $sortFunction = 'usort'): CollectionInterface
@@ -46,7 +81,7 @@ class Collection implements CollectionInterface, \Countable
     {
         $result = $initial;
         foreach ($this as $value) {
-            $result = call_user_func($callback, $result, $value);
+            $result = \call_user_func($callback, $result, $value);
         }
 
         return $result;
@@ -66,7 +101,8 @@ class Collection implements CollectionInterface, \Countable
      */
     public function find($item)
     {
-        foreach ($this as $index => $value) {
+        $self = clone $this;
+        foreach ($self as $index => $value) {
             if ($value === $item) {
                 return $index;
             }
@@ -102,34 +138,34 @@ class Collection implements CollectionInterface, \Countable
 
     public function count()
     {
-        return count($this->raw());
+        return \count($this->raw());
     }
 
     public function keys(): CollectionInterface
     {
-        return new static(array_keys($this->raw()));
+        return new static(\array_keys($this->raw()));
     }
 
     public function values(): CollectionInterface
     {
-        return new static(array_values($this->raw()));
+        return new static(\array_values($this->raw()));
     }
 
     public function each(callable $callback): void
     {
         foreach ($this as $key => $value) {
-            call_user_func($callback, $value, $key);
+            \call_user_func($callback, $value, $key);
         }
     }
 
     public function implode(string $separator): string
     {
-        return implode($separator, iterator_to_array($this));
+        return \implode($separator, (array) \iterator_to_array($this));
     }
 
     public function append(iterable $items): CollectionInterface
     {
-        if (is_array($items)) {
+        if (\is_array($items)) {
             $items = new \ArrayIterator($items);
         }
 
@@ -143,9 +179,9 @@ class Collection implements CollectionInterface, \Countable
         return new static($iterator);
     }
 
-    public function prepend(iterable $items)
+    public function prepend(iterable $items): CollectionInterface
     {
-        if (is_array($items)) {
+        if (\is_array($items)) {
             $items = new \ArrayIterator($items);
         }
 
@@ -157,21 +193,19 @@ class Collection implements CollectionInterface, \Countable
 
     public function unique(): CollectionInterface
     {
-        $items = [];
-        foreach ($this as $target) {
-            $i = 0;
-            foreach ($this as $key => $item) {
-                if ($target === $item) {
-                    $i++;
-                }
+        $self = clone $this;
 
-                if ($i === 1) {
-                    $items[$key] = $item;
+        return new self(generator(function () use ($self) {
+            $values = [];
+
+            foreach ($self as $key => $value) {
+                if (!\in_array($value, $values)) {
+                    $values[] = $value;
+
+                    yield $key => $value;
                 }
             }
-        }
-
-        return new static($items);
+        }));
     }
 
     public function contains($item)
@@ -226,15 +260,17 @@ class Collection implements CollectionInterface, \Countable
 
     public function combine(iterable $values, int $mode = self::USE_VALUES_ONLY)
     {
-        if (is_array($values)) {
-            $values = new \ArrayIterator($values);
-        }
+        $values = generator(function () use ($values) {
+            foreach ($values as $key => $value) {
+                yield $key => $value;
+            }
+        });
 
-        if (count($this) !== count($values)) {
-            throw new \InvalidArgumentException(sprintf(
+        if (\count($this) !== \count($values)) {
+            throw new \InvalidArgumentException(\sprintf(
                 'Values count (%d) must be equal to key count (%d)',
-                count($values),
-                count($this)
+                \count($values),
+                \count($this)
             ));
         }
 
@@ -261,7 +297,7 @@ class Collection implements CollectionInterface, \Countable
 
     public function pad(int $length, $padding, int $direction = self::PAD_RIGHT)
     {
-        $itemsCount = count($this);
+        $itemsCount = \count($this);
         $count = $length - $itemsCount;
 
         $result = $this;
@@ -288,7 +324,7 @@ class Collection implements CollectionInterface, \Countable
 
     public function reverse()
     {
-        return new static(array_reverse($this->raw(), true));
+        return new static(\array_reverse($this->raw(), true));
     }
 
     public function flip()
@@ -307,7 +343,7 @@ class Collection implements CollectionInterface, \Countable
     public function validate(callable $callback)
     {
         foreach ($this as $key => $value) {
-            if (!call_user_func($callback, $value, $key)) {
+            if (!\call_user_func($callback, $value, $key)) {
                 return false;
             }
         }
@@ -319,8 +355,8 @@ class Collection implements CollectionInterface, \Countable
     {
         $self = clone $this;
         foreach ($self as $key => $value) {
-            if (call_user_func($expression, $value, $key)) {
-                call_user_func($callback, $value, $key);
+            if (\call_user_func($expression, $value, $key)) {
+                \call_user_func($callback, $value, $key);
             }
         }
 
@@ -331,7 +367,7 @@ class Collection implements CollectionInterface, \Countable
     {
         $result = [];
         foreach ($this as $key => $value) {
-            $result[call_user_func($grouping, $value, $key)][] = $value;
+            $result[\call_user_func($grouping, $value, $key)][] = $value;
         }
 
         return new static($result);
@@ -356,7 +392,7 @@ class Collection implements CollectionInterface, \Countable
         $self = clone $this;
         return new static(generator(function () use ($self, $serializeFn) {
             foreach ($self as $key => $value) {
-                yield $key => call_user_func($serializeFn, $value);
+                yield $key => \call_user_func($serializeFn, $value);
             }
         }));
     }
@@ -366,14 +402,14 @@ class Collection implements CollectionInterface, \Countable
         $self = clone $this;
         return new static(generator(function () use ($self, $unserializeFn) {
             foreach ($self as $key => $value) {
-                yield $key => call_user_func($unserializeFn, $value);
+                yield $key => \call_user_func($unserializeFn, $value);
             }
         }));
     }
 
     public function raw(): array
     {
-        $values = iterator_to_array($this, true);
+        $values = (array) \iterator_to_array($this, true);
         foreach ($values as $key => $value) {
             if ($value instanceof CollectionInterface) {
                 $values[$key] = $value->raw();
@@ -381,5 +417,16 @@ class Collection implements CollectionInterface, \Countable
         }
 
         return $values;
+    }
+
+    public static function aggregate(iterable $collections): CollectionInterface
+    {
+        return new static(generator(function () use ($collections) {
+            foreach ($collections as $collection) {
+                foreach ($collection as $key => $value) {
+                    yield $key => $value;
+                }
+            }
+        }));
     }
 }

@@ -9,55 +9,85 @@ class StringCollection extends Collection implements CollectionInterface
     public function lowercase(int $mode = self::USE_VALUES_ONLY)
     {
         $self = clone $this;
-        return new static(generator(function () use ($self, $mode) {
-            foreach ($self as $key => $value) {
-                if (($mode & self::USE_KEYS_ONLY) === self::USE_KEYS_ONLY) {
-                    $key = strtolower($key);
-                }
-
-                if (($mode & self::USE_VALUES_ONLY) === self::USE_VALUES_ONLY) {
-                    $value = strtolower($value);
-                }
-
-                yield $key => $value;
-            }
-        }));
+        switch ($mode) {
+            case self::USE_KEYS_ONLY:
+                return new static(generator(function () use ($self) {
+                    foreach ($self as $key => $value) {
+                        yield \strtolower((string) $key) => $value;
+                    }
+                }));
+                break;
+            case self::USE_VALUES_ONLY:
+                return new static(generator(function () use ($self) {
+                    foreach ($self as $key => $value) {
+                        yield $key => \strtolower((string) $value);
+                    }
+                }));
+                break;
+            default:
+                return new static(generator(function () use ($self) {
+                    foreach ($self as $key => $value) {
+                        yield \strtolower((string) $key) => \strtolower((string) $value);
+                    }
+                }));
+                break;
+        }
     }
 
-    public function uppercase(int $mode = self::USE_VALUES_ONLY): self
+    public function uppercase(int $mode = self::USE_BOTH): self
     {
         $self = clone $this;
-        return new static(generator(function () use ($self, $mode) {
-            foreach ($self as $key => $value) {
-                if (($mode & self::USE_KEYS_ONLY) === self::USE_KEYS_ONLY) {
-                    $key = strtoupper($key);
-                }
-
-                if (($mode & self::USE_VALUES_ONLY) === self::USE_VALUES_ONLY) {
-                    $value = strtoupper($value);
-                }
-
-                yield $key => $value;
-            }
-        }));
+        switch ($mode) {
+            case self::USE_KEYS_ONLY:
+                return new static(generator(function () use ($self) {
+                    foreach ($self as $key => $value) {
+                        yield \strtoupper((string) $key) => $value;
+                    }
+                }));
+                break;
+            case self::USE_VALUES_ONLY:
+                return new static(generator(function () use ($self) {
+                    foreach ($self as $key => $value) {
+                        yield $key => \strtoupper((string) $value);
+                    }
+                }));
+                break;
+            default:
+                return new static(generator(function () use ($self) {
+                    foreach ($self as $key => $value) {
+                        yield \strtoupper((string) $key) => \strtoupper((string) $value);
+                    }
+                }));
+                break;
+        }
     }
 
     public function words(int $mode = self::USE_VALUES_ONLY, string $delimiter = " \t\r\n\f\v"): self
     {
         $self = clone $this;
-        return new static(generator(function () use ($self, $mode, $delimiter) {
-            foreach ($self as $key => $value) {
-                if (($mode & self::USE_KEYS_ONLY) === self::USE_KEYS_ONLY && is_string($key)) {
-                    $key = ucwords($key, $delimiter);
-                }
-
-                if (($mode & self::USE_VALUES_ONLY) === self::USE_VALUES_ONLY) {
-                    $value = ucwords($value, $delimiter);
-                }
-
-                yield $key => $value;
-            }
-        }));
+        switch ($mode) {
+            case self::USE_KEYS_ONLY:
+                return new static(generator(function () use ($self, $delimiter) {
+                    foreach ($self as $key => $value) {
+                        yield \ucwords((string) $key, $delimiter) => $value;
+                    }
+                }));
+                break;
+            case self::USE_VALUES_ONLY:
+                return new static(generator(function () use ($self, $delimiter) {
+                    foreach ($self as $key => $value) {
+                        yield $key => \ucwords((string) $value, $delimiter);
+                    }
+                }));
+                break;
+            default:
+                return new static(generator(function () use ($self, $delimiter) {
+                    foreach ($self as $key => $value) {
+                        yield \ucwords((string) $key, $delimiter) => \ucwords((string) $value, $delimiter);
+                    }
+                }));
+                break;
+        }
     }
 
     public function soundex(): self
@@ -65,7 +95,7 @@ class StringCollection extends Collection implements CollectionInterface
         $self = clone $this;
         return new static(generator(function () use ($self) {
             foreach ($self as $key => $value) {
-                yield $key => soundex($value);
+                yield $key => \soundex($value);
             }
         }));
     }
@@ -75,7 +105,7 @@ class StringCollection extends Collection implements CollectionInterface
         $self = clone $this;
         return new static(generator(function () use ($self, $phonemes) {
             foreach ($self as $key => $value) {
-                yield $key => metaphone($value, $phonemes);
+                yield $key => \metaphone($value, $phonemes);
             }
         }));
     }
@@ -83,9 +113,9 @@ class StringCollection extends Collection implements CollectionInterface
     public function encode(callable $encoder, array $args = []): self
     {
         $self = clone $this;
-        return self(generator(function () use ($self, $encoder, $args) {
+        return new self(generator(function () use ($self, $encoder, $args) {
             foreach ($self as $key => $value) {
-                yield $key => call_user_func($encoder, $value, ...$args);
+                yield $key => \call_user_func($encoder, $value, ...$args);
             }
         }));
     }
@@ -93,9 +123,9 @@ class StringCollection extends Collection implements CollectionInterface
     public function decode(callable $decoder, array $args = []): self
     {
         $self = clone $this;
-        return self(generator(function () use ($self, $decoder, $args) {
+        return new self(generator(function () use ($self, $decoder, $args) {
             foreach ($self as $key => $value) {
-                yield $key => call_user_func($decoder, $value, ...$args);
+                yield $key => \call_user_func($decoder, $value, ...$args);
             }
         }));
     }
@@ -103,14 +133,14 @@ class StringCollection extends Collection implements CollectionInterface
     public function convert(string $targetEncoding, string $sourceEncoding = null): self
     {
         $self = clone $this;
-        return self(generator(function () use ($self, $targetEncoding, $sourceEncoding) {
+        return new self(generator(function () use ($self, $targetEncoding, $sourceEncoding) {
             foreach ($self as $key => $value) {
                 if ($sourceEncoding === null) {
-                    if (!extension_loaded('mbstring')) {
+                    if (!\extension_loaded('mbstring')) {
                         throw new \RuntimeException("Please enable 'mbstring' extension");
                     }
 
-                    $sourceEncoding = mb_detect_encoding($value, mb_detect_order(), true);
+                    $sourceEncoding = \mb_detect_encoding($value, \mb_detect_order(), true);
                 }
 
                 if (!$sourceEncoding) {
@@ -118,7 +148,7 @@ class StringCollection extends Collection implements CollectionInterface
                 }
 
                 if ($sourceEncoding) {
-                    yield $key => iconv($sourceEncoding, $targetEncoding, $value);
+                    yield $key => \iconv($sourceEncoding, $targetEncoding, $value);
                 }
             }
         }));
@@ -127,7 +157,7 @@ class StringCollection extends Collection implements CollectionInterface
     public function match(string $regex): CollectionInterface
     {
         return parent::map(function ($value) use ($regex) {
-            preg_match($regex, $value, $matches);
+            \preg_match($regex, $value, $matches);
 
             return $matches ?? [];
         });

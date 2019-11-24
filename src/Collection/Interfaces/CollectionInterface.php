@@ -24,12 +24,12 @@ interface CollectionInterface extends \Iterator
     public function valid(): bool;
     public function count();
     public function keys(): CollectionInterface;
-    public function values(): self;
+    public function values(): CollectionInterface;
     public function each(callable $callback): void;
     public function implode(string $separator);
-    public function append(iterable $items): self;
+    public function append(iterable $items): CollectionInterface;
     public function prepend(iterable $items);
-    public function unique(): self;
+    public function unique(): CollectionInterface;
     public function contains($item);
     public function intersect(iterable ...$elements);
     public function diff(iterable ...$elements);
