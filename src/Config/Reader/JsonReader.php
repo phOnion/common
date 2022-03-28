@@ -1,7 +1,8 @@
 <?php
+
 namespace Onion\Framework\Common\Config\Reader;
 
-use Onion\Framework\Common\Config\Interfaces\ReaderInterface;
+use Onion\Framework\Config\Interfaces\ReaderInterface;
 
 class JsonReader implements ReaderInterface
 {
@@ -11,6 +12,6 @@ class JsonReader implements ReaderInterface
             throw new \InvalidArgumentException("Unable to parse {$filename}");
         }
 
-        return json_decode(file_get_contents($filename), true);
+        return json_decode(file_get_contents($filename), true, flags: JSON_THROW_ON_ERROR);
     }
 }

@@ -1,96 +1,84 @@
 <?php
-namespace Onion\Framework\Common\Collection;
 
-use function Onion\Framework\Common\generator;
-use Onion\Framework\Common\Collection\Interfaces\CollectionInterface;
+namespace Onion\Framework\Collection;
+
+use Closure;
+use Onion\Framework\Collection\Interfaces\CollectionInterface;
+
+use function Onion\Framework\generator;
 
 class StringCollection extends Collection implements CollectionInterface
 {
-    public function lowercase(int $mode = self::USE_VALUES_ONLY)
+    /**
+     * @return static
+     */
+    public function lowercase(int $mode = self::USE_VALUES_ONLY): static
     {
         $self = clone $this;
-        switch ($mode) {
-            case self::USE_KEYS_ONLY:
-                return new static(generator(function () use ($self) {
-                    foreach ($self as $key => $value) {
-                        yield \strtolower((string) $key) => $value;
-                    }
-                }));
-                break;
-            case self::USE_VALUES_ONLY:
-                return new static(generator(function () use ($self) {
-                    foreach ($self as $key => $value) {
-                        yield $key => \strtolower((string) $value);
-                    }
-                }));
-                break;
-            default:
-                return new static(generator(function () use ($self) {
-                    foreach ($self as $key => $value) {
-                        yield \strtolower((string) $key) => \strtolower((string) $value);
-                    }
-                }));
-                break;
-        }
+        return match ($mode) {
+            self::USE_KEYS_ONLY => new static(generator(function () use ($self) {
+                foreach ($self as $key => $value) {
+                    yield \strtolower((string) $key) => $value;
+                }
+            })),
+            self::USE_VALUES_ONLY => new static(generator(function () use ($self) {
+                foreach ($self as $key => $value) {
+                    yield $key => \strtolower((string) $value);
+                }
+            })),
+            self::USE_BOTH => new static(generator(function () use ($self) {
+                foreach ($self as $key => $value) {
+                    yield \strtolower((string) $key) => \strtolower((string) $value);
+                }
+            })),
+        };
     }
 
-    public function uppercase(int $mode = self::USE_BOTH): self
+    public function uppercase(int $mode = self::USE_BOTH): static
     {
         $self = clone $this;
-        switch ($mode) {
-            case self::USE_KEYS_ONLY:
-                return new static(generator(function () use ($self) {
-                    foreach ($self as $key => $value) {
-                        yield \strtoupper((string) $key) => $value;
-                    }
-                }));
-                break;
-            case self::USE_VALUES_ONLY:
-                return new static(generator(function () use ($self) {
-                    foreach ($self as $key => $value) {
-                        yield $key => \strtoupper((string) $value);
-                    }
-                }));
-                break;
-            default:
-                return new static(generator(function () use ($self) {
-                    foreach ($self as $key => $value) {
-                        yield \strtoupper((string) $key) => \strtoupper((string) $value);
-                    }
-                }));
-                break;
-        }
+        return match ($mode) {
+            self::USE_KEYS_ONLY => new static(generator(function () use ($self) {
+                foreach ($self as $key => $value) {
+                    yield \strtoupper((string) $key) => $value;
+                }
+            })),
+            self::USE_VALUES_ONLY => new static(generator(function () use ($self) {
+                foreach ($self as $key => $value) {
+                    yield $key => \strtoupper((string) $value);
+                }
+            })),
+            self::USE_BOTH => new static(generator(function () use ($self) {
+                foreach ($self as $key => $value) {
+                    yield \strtoupper((string) $key) => \strtoupper((string) $value);
+                }
+            })),
+        };
     }
 
-    public function words(int $mode = self::USE_VALUES_ONLY, string $delimiter = " \t\r\n\f\v"): self
+    public function words(int $mode = self::USE_VALUES_ONLY, string $delimiter = " \t\r\n\f\v"): static
     {
         $self = clone $this;
-        switch ($mode) {
-            case self::USE_KEYS_ONLY:
-                return new static(generator(function () use ($self, $delimiter) {
-                    foreach ($self as $key => $value) {
-                        yield \ucwords((string) $key, $delimiter) => $value;
-                    }
-                }));
-                break;
-            case self::USE_VALUES_ONLY:
-                return new static(generator(function () use ($self, $delimiter) {
-                    foreach ($self as $key => $value) {
-                        yield $key => \ucwords((string) $value, $delimiter);
-                    }
-                }));
-                break;
-            default:
-                return new static(generator(function () use ($self, $delimiter) {
-                    foreach ($self as $key => $value) {
-                        yield \ucwords((string) $key, $delimiter) => \ucwords((string) $value, $delimiter);
-                    }
-                }));
-                break;
-        }
+        return match ($mode) {
+            self::USE_KEYS_ONLY => new static(generator(function () use ($self, $delimiter) {
+                foreach ($self as $key => $value) {
+                    yield \ucwords((string) $key, $delimiter) => $value;
+                }
+            })),
+            self::USE_VALUES_ONLY => new static(generator(function () use ($self, $delimiter) {
+                foreach ($self as $key => $value) {
+                    yield $key => \ucwords((string) $value, $delimiter);
+                }
+            })),
+            self::USE_BOTH => new static(generator(function () use ($self, $delimiter) {
+                foreach ($self as $key => $value) {
+                    yield \ucwords((string) $key, $delimiter) => \ucwords((string) $value);
+                }
+            })),
+        };
     }
 
-    public function soundex(): self
+    public function soundex(): static
     {
         $self = clone $this;
         return new static(generator(function () use ($self) {
@@ -100,7 +88,7 @@ class StringCollection extends Collection implements CollectionInterface
         }));
     }
 
-    public function metaphone(int $phonemes = 0): self
+    public function metaphone(int $phonemes = 0): static
     {
         $self = clone $this;
         return new static(generator(function () use ($self, $phonemes) {
@@ -110,30 +98,30 @@ class StringCollection extends Collection implements CollectionInterface
         }));
     }
 
-    public function encode(callable $encoder, array $args = []): self
+    public function encode(callable $encoder, array $args = []): static
     {
         $self = clone $this;
-        return new self(generator(function () use ($self, $encoder, $args) {
+        return new static(generator(function () use ($self, $encoder, $args) {
             foreach ($self as $key => $value) {
-                yield $key => \call_user_func($encoder, $value, ...$args);
+                yield $key => \Closure::fromCallable($encoder)($value, ...$args);
             }
         }));
     }
 
-    public function decode(callable $decoder, array $args = []): self
+    public function decode(callable $decoder, array $args = []): static
     {
         $self = clone $this;
-        return new self(generator(function () use ($self, $decoder, $args) {
+        return new static(generator(function () use ($self, $decoder, $args) {
             foreach ($self as $key => $value) {
-                yield $key => \call_user_func($decoder, $value, ...$args);
+                yield $key => Closure::fromCallable($decoder)($value, ...$args);
             }
         }));
     }
 
-    public function convert(string $targetEncoding, string $sourceEncoding = null): self
+    public function convert(string $targetEncoding, string $sourceEncoding = null): static
     {
         $self = clone $this;
-        return new self(generator(function () use ($self, $targetEncoding, $sourceEncoding) {
+        return new static(generator(function () use ($self, $targetEncoding, $sourceEncoding) {
             foreach ($self as $key => $value) {
                 if ($sourceEncoding === null) {
                     if (!\extension_loaded('mbstring')) {
@@ -154,12 +142,13 @@ class StringCollection extends Collection implements CollectionInterface
         }));
     }
 
-    public function match(string $regex): CollectionInterface
+    public function match(string $regex): static
     {
-        return parent::map(function ($value) use ($regex) {
-            \preg_match($regex, $value, $matches);
+        return $this->map(function ($value) use ($regex) {
+            $matches = [];
+            return \preg_match($regex, $value, $matches);
 
-            return $matches ?? [];
+            return $matches;
         });
     }
 }

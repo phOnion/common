@@ -1,7 +1,8 @@
 <?php
-namespace Onion\Framework\Common\Collection;
 
-use Onion\Framework\Common\Collection\Interfaces\CollectionInterface;
+namespace Onion\Framework\Collection;
+
+use Onion\Framework\Collection\Interfaces\CollectionInterface;
 
 class NumericCollection extends Collection implements CollectionInterface
 {
@@ -28,30 +29,31 @@ class NumericCollection extends Collection implements CollectionInterface
 
         $count = \count($items);
 
-        $middle = (int) $count / 2;
+        $middle = $count / 2;
         if ($count % 2 === 0) {
             return \round($items[$middle], $precision, $mode);
         }
 
         return \round(
-            $this->slice(--$middle, 2)->average(),
+            $this->slice((int) --$middle, 2)->average(),
             $precision,
             $mode
         );
     }
 
-    public function mode(int $precision = 2, $mode = \PHP_ROUND_HALF_UP): self
+    public function mode(int $precision = 2, $mode = \PHP_ROUND_HALF_UP): float
     {
         $results = [];
         foreach ($this as $number) {
             $results[$number] = isset($results[$number]) ?
                 $results[$number] + 1 : 0;
         }
+        $item = (int) array_flip($results)[max(...$results)];
 
-        return \round(\array_flip($results)[\max(...$results)]);
+        return \round($item, $precision, $mode);
     }
 
-    public function average(int $precision = 2, $mode = \PHP_ROUND_HALF_UP)
+    public function average(int $precision = 2, $mode = \PHP_ROUND_HALF_UP): float
     {
         return \round($this->sum() / \count($this), $precision, $mode);
     }

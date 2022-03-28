@@ -1,8 +1,8 @@
 <?php
+
 namespace Onion\Framework\Common\Config\Reader;
 
-use Onion\Framework\Common\Config\Interfaces\ReaderInterface;
-
+use Onion\Framework\Config\Interfaces\ReaderInterface;
 
 class IniReader implements ReaderInterface
 {
@@ -12,6 +12,6 @@ class IniReader implements ReaderInterface
             throw new \InvalidArgumentException("Unable to parse {$filename}");
         }
 
-        return parse_ini_file($filename, true, INI_SCANNER_TYPED);
+        return parse_ini_file($filename, true, INI_SCANNER_TYPED) ?: null;
     }
 }

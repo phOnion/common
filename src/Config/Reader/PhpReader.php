@@ -1,8 +1,10 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Onion\Framework\Common\Config\Reader;
 
-use Onion\Framework\Common\Config\Interfaces\ReaderInterface;
-
+use Onion\Framework\Config\Interfaces\ReaderInterface;
 
 class PhpReader implements ReaderInterface
 {

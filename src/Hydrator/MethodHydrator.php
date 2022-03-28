@@ -1,29 +1,18 @@
 <?php
-namespace Onion\Framework\Common\Hydrator;
+
+namespace Onion\Framework\Hydrator;
 
 use Onion\Framework\Hydrator\Interfaces\HydratableInterface;
+use ReflectionMethod;
+use ReflectionObject;
 
 trait MethodHydrator
 {
-    public function hydrate(iterable $data, int $options = 0): HydratableInterface
+    public function hydrate(iterable $data): HydratableInterface
     {
         /** @var HydratableInterface $target */
-        $target = clone $this;
-        if (($options & HydratableInterface::USE_RAW_KEYS) !== HydratableInterface::USE_RAW_KEYS) {
-            $underscoreKeys = ($options & HydratableInterface::USE_SNAKE_CASE) === HydratableInterface::USE_SNAKE_CASE;
-            $getSetterName = $underscoreKeys ?
-                function ($name): string {
-                    return 'set_' . \strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $name));
-                } :
-                function ($name): string {
-                    return 'set' . \ucfirst(\str_replace('_', '', $name));
-                };
-
-        } else {
-            $getSetterName = function ($name): string {
-                return "set{$name}";
-            };
-        }
+        $target = $this;
+        $getSetterName = fn ($name): string => 'set' . \lcfirst(\str_replace(' ', '', \ucfirst(\str_replace('_', ' ', $name))));
 
         foreach ($data as $key => $value) {
             $setterName = $getSetterName($key);
@@ -35,47 +24,49 @@ trait MethodHydrator
         return $target;
     }
 
-    public function extract(iterable $keys = [], int $options = HydratableInterface::EXCLUDE_EMPTY): iterable {
-        $includeIsAndHas = ($options & HydratableInterface::EXTRACT_ALT_GETTERS) === HydratableInterface::EXTRACT_ALT_GETTERS;
-        $underscoreKeys = ($options & HydratableInterface::USE_SNAKE_CASE) === HydratableInterface::USE_SNAKE_CASE;
-        $useRawKeys = ($options & HydratableInterface::USE_RAW_KEYS) === HydratableInterface::USE_RAW_KEYS;
-        $extractEmpty = ($options & HydratableInterface::EXCLUDE_EMPTY) === HydratableInterface::EXCLUDE_EMPTY;
-        $preserveCase = ($options & HydratableInterface::PRESERVE_CASE) === HydratableInterface::PRESERVE_CASE;
-
-        $extractor = function () use ($includeIsAndHas) {
-            return array_filter(
-                get_class_methods(static::class),
-                function ($name) use ($includeIsAndHas) {
-                    $is = $has = false;
-
-                    if ($includeIsAndHas) {
-                        $is = substr($name, 0, 2) === 'is';
-                        $has = substr($name, 0, 3) === 'has';
-                    }
-
-                    if ($is || $has) {
-                        return true;
-                    }
-
-                    return substr($name, 0, 3) === 'get';
-                }
-            );
-        };
-
+    public function extract(array $keys = [], bool $includeEmpty = true): array
+    {
+        $reflection = new ReflectionObject($this);
         $result = [];
-        foreach ($extractor() as $name) {
-            $key = $name;
-            if (!$useRawKeys || $underscoreKeys) {
-                $key = preg_replace('/(?<!^)[A-Z]/', '_$0', $name);
+        foreach ($reflection->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
+            if (count($method->getParameters()) !== 0) {
+                continue;
             }
-            $key = trim(preg_replace('/^(get|is|has)/', '', $key), '_');
 
-            $result[$preserveCase ? $key : strtolower($key)] = $this->{$name}();
+            $name = $method->getName();
+            if (substr($name, 0, 2) === 'is') {
+                $value = $this->{$name}();
+                if (!$includeEmpty && $value === null) {
+                    continue;
+                }
+                $prop = lcfirst(substr($name, 2));
+                if (!empty($keys) && !in_array($prop, $keys, true)) {
+                    continue;
+                }
+
+                $result[$prop] = $value;
+            } else if (substr($name, 0, 3) === 'has' || substr($name, 0, 3) === 'get') {
+                $value = $this->{$name}();
+                if (!$includeEmpty && $value === null) {
+                    continue;
+                }
+                $prop = lcfirst(substr($name, 3));
+                if (!empty($keys) && !in_array($prop, $keys, true)) {
+                    continue;
+                }
+
+                $result[$prop] = $this->{$name}();
+            }
         }
 
-        return array_filter($result, function ($key) use (&$result, &$keys, &$extractEmpty) {
-            return (in_array($key, $keys) || empty($keys)) &&
-                ($extractEmpty ? !empty($result[$key]) : true);
-        }, ARRAY_FILTER_USE_KEY);
+        if (!$includeEmpty) {
+            foreach ($result as $name => $value) {
+                if ($value === null) {
+                    unset($result[$value]);
+                }
+            }
+        }
+
+        return $result;
     }
 }

@@ -1,16 +1,23 @@
 <?php
+
 namespace Onion\Framework\Common\Config;
 
-use function Onion\Framework\Common\find_by_separator;
-use Onion\Framework\Common\Dependency\Traits\AttachableContainerTrait;
-use Onion\Framework\Common\Dependency\Traits\ContainerTrait;
-use Onion\Framework\Dependency\Exception\UnknownDependency;
+use Closure;
+use Onion\Framework\Dependency\Traits\AttachableContainerTrait;
+use Onion\Framework\Dependency\Traits\ContainerTrait;
 use Onion\Framework\Dependency\Interfaces\AttachableContainer;
+use Onion\Framework\Proxy\LazyFactory;
 use Psr\Container\ContainerInterface;
+
+use function Onion\Framework\Common\find_by_separator;
 
 class Container implements ContainerInterface, AttachableContainer
 {
-    private const DETECTION_REGEX = '/(?|(?P<expression>(?P<operation>[a-z_\-]+)(?:\((?P<args>([^()]+)|(?R))*\)|\:(?P<decorate>[^\s]+))))/i';
+    use ContainerTrait;
+    use AttachableContainerTrait;
+
+    private const DETECTION_REGEX =
+    '/(?|(?P<expression>(?P<operation>[a-z_\-]+)(?:\((?P<args>([^\s]+)|(?R))*\)|\:(?P<decorate>[^\s]+))))/i';
 
     private $storage = [];
     private $handlers = [];
@@ -18,22 +25,25 @@ class Container implements ContainerInterface, AttachableContainer
 
     private $delegate;
 
-    use ContainerTrait, AttachableContainerTrait;
-
     public function __construct(array $configuration, array $handlers = [], string $separator = '.')
     {
         $this->storage = $configuration;
         $this->delegate = $this;
         $this->handlers = array_merge([
-            'get' => function ($key) {
-                return $this->delegate->get($key);
-            },
-            'has' => function ($key) {
-                return $this->delegate->has($key);
-            },
-            'env' => 'getenv',
-            'wrap' => function ($key) {
-                return new static($this->get($key), $this->handlers, $this->separator);
+            'get' => fn ($key) => $this->delegate->get($key),
+            'has' => fn ($key) => $this->delegate->has($key),
+            'env' => fn ($key) => getenv($key, true),
+            'wrap' => fn ($key) => new static($this->get($key), array_map(fn ($h) => Closure::fromCallable($h), $this->handlers), $this->separator),
+            'lazy' => function ($key) {
+                $callable = fn () => $this->delegate->get($key);
+                $class = $key;
+                if (!class_exists($key)) {
+                    throw new \InvalidArgumentException("Unable to use 'lazy' on {$key}. Not a class");
+                }
+
+                return $this->delegate
+                    ->get(LazyFactory::class)
+                    ->generate($callable, $class);
             }
         ], $handlers);
         $this->separator = $separator;
@@ -66,7 +76,7 @@ class Container implements ContainerInterface, AttachableContainer
         return $value;
     }
 
-    private function filterMetaValues(array $values)
+    private function filterMetaValues(array $values): array
     {
         return array_map(function ($member) {
             if (is_array($member)) {
@@ -81,13 +91,13 @@ class Container implements ContainerInterface, AttachableContainer
         }, $values);
     }
 
-    public function has($key)
+    public function has($key): bool
     {
         try {
             find_by_separator($this->storage, $this->normalizeKey($key), $this->separator);
 
             return true;
-        } catch (\LogicException | UnknownDependency $ex) {
+        } catch (\LogicException $ex) {
             return false;
         }
     }
@@ -97,7 +107,7 @@ class Container implements ContainerInterface, AttachableContainer
         $count = preg_match_all(self::DETECTION_REGEX, $key, $matches, PREG_SET_ORDER);
 
         if ($count > 0) {
-            $intermediate = $key;
+            $targetKey = $intermediate = $key;
             foreach ($matches as $index => $match) {
                 $targetKey = !empty($match['args']) ? $match['args'] : $match['decorate'];
                 if ($index === 0) {
@@ -114,19 +124,19 @@ class Container implements ContainerInterface, AttachableContainer
         return $key;
     }
 
-    private function getTyped($value)
+    private function getTyped(string $value): int | float | string
     {
-            $value = trim($value);
-            if (preg_match('/^\d+$/i', $value)) {
-                return (int) $value;
-            }
+        $value = trim($value);
+        if (preg_match('/^\d+$/i', $value)) {
+            return (int) $value;
+        }
 
-            // handle exponents and negative numbers
-            if (preg_match('/^[\-+]?[\d\.]+(?:[e\d+\-]+)?\d$/i', $value)) {
-                return (float) $value;
-            }
+        // handle exponents and negative numbers
+        if (preg_match('/^[\-+]?[\d\.]+(?:[e\d+\-]+)?\d$/i', $value)) {
+            return (float) $value;
+        }
 
-            return trim($value, '\'"');
+        return trim($value, '\'"');
     }
 
     private function processValue(string $value)
@@ -147,7 +157,7 @@ class Container implements ContainerInterface, AttachableContainer
 
                 $result = null;
                 if (isset($match['decorate'])) {
-                    $result = $this->getTyped(call_user_func($handler, $this->getTyped($match['decorate'])));
+                    $result = $this->getTyped($handler($this->processValue($this->getTyped($match['decorate']))));
                 }
 
                 if (isset($match['args'])) {
@@ -156,14 +166,15 @@ class Container implements ContainerInterface, AttachableContainer
                         return $this->processValue($value);
                     }, $args);
 
-                    $result = call_user_func_array($handler, $args);
+                    $result = $handler(...$args);
                 }
 
+                /** @var array<array-key, float|int|string>|string $result */
                 if ($result !== null) {
                     if (is_array($result)) {
                         $result = $this->filterMetaValues($result);
                     } elseif (is_scalar($result)) {
-                        $value = $this->getTyped(str_replace($match['expression'], $result, $value));
+                        $value = $this->getTyped(str_replace($match['expression'], $result, (string) $value));
                     } else {
                         $value = $result;
                     }

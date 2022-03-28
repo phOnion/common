@@ -1,21 +1,17 @@
 {
-    "name": "onion/common",
-    "autoload": {
-        "psr-4": {
-            "Onion\\Framework\\Common\\": "src/"
-        },
-        "files": [
-            "src/functions.php",
-            "src/interop.php"
-        ]
+  "name": "onion/common",
+  "autoload": {
+    "psr-4": {
+      "Onion\\Framework\\Common\\": "src/"
     },
-    "require": {
-        "onion/interfaces": "dev-master"
-    },
-    "require-dev": {
-        "roave/security-advisories": "dev-master"
-    },
-    "suggest": {
-        "symfony/yaml": "To be able to parse YAML configuration files"
-    }
+    "files": [
+      "src/functions.php"
+    ]
+  },
+  "require": {
+    "onion/interfaces": "@dev"
+  },
+  "require-dev": {
+    "roave/security-advisories": "dev-master"
+  }
 }

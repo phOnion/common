@@ -1,7 +1,7 @@
 <?php
-namespace Onion\Framework\Common\Dependency\Traits;
 
-use Onion\Framework\Dependency\Container;
+namespace Onion\Framework\Dependency\Traits;
+
 use Onion\Framework\Dependency\Interfaces\AttachableContainer;
 use Onion\Framework\Dependency\Interfaces\DelegateContainerInterface;
 use Psr\Container\ContainerInterface;
@@ -23,6 +23,6 @@ trait AttachableContainerTrait
 
     protected function getDelegate(): ContainerInterface
     {
-        return $this->delegate ?? new Container([]);
+        return $this->delegate ?? ($this instanceof ContainerInterface ? $this : new static([]));
     }
 }

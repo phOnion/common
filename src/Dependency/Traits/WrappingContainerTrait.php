@@ -1,11 +1,12 @@
 <?php
-namespace Onion\Framework\Common\Dependency\Traits;
+
+namespace Onion\Framework\Dependency\Traits;
 
 use Psr\Container\ContainerInterface;
 
 trait WrappingContainerTrait
 {
-    private $container;
+    private ContainerInterface $container;
 
     public function wrap(ContainerInterface $container): void
     {

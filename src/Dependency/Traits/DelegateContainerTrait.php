@@ -1,8 +1,10 @@
 <?php
-namespace Onion\Framework\Common\Dependency\Traits;
+
+namespace Onion\Framework\Dependency\Traits;
 
 use Onion\Framework\Dependency\Interfaces\AttachableContainer;
 use Onion\Framework\Dependency\Interfaces\DelegateContainerInterface;
+use Psr\Container\ContainerInterface;
 
 trait DelegateContainerTrait
 {
@@ -20,7 +22,7 @@ trait DelegateContainerTrait
         $this->containers[] = $attachable;
     }
 
-    public function getAttachedContainers(): iterable
+    public function getAttachedContainers(): array
     {
         return $this->containers;
     }

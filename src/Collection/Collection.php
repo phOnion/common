@@ -1,16 +1,36 @@
 <?php
+
 declare(strict_types=1);
 
-namespace Onion\Framework\Common\Collection;
+namespace Onion\Framework\Collection;
 
-use function Onion\Framework\Common\generator;
-use function Onion\Framework\Common\is_cloneable;
+use AppendIterator;
+use ArrayIterator;
+use CallbackFilterIterator;
+use Generator;
+use InvalidArgumentException;
+use Iterator;
+use IteratorIterator;
+use LimitIterator;
+use Onion\Framework\Collection\Interfaces\CollectionInterface;
+use RuntimeException;
 
-use Onion\Framework\Common\Collection\Interfaces\CollectionInterface;
+use function array_keys;
+use function array_reverse;
+use function array_values;
+use function count;
+use function Onion\Framework\generator;
+use function implode;
+use function in_array;
+use function is_array;
+use function is_countable;
+use function is_object;
+use function iterator_to_array;
+use function sprintf;
 
-class Collection implements CollectionInterface, \Countable, \ArrayAccess
+class Collection implements CollectionInterface
 {
-    private $items;
+    private Iterator $items;
 
     public function __construct(iterable $items)
     {
@@ -23,12 +43,19 @@ class Collection implements CollectionInterface, \Countable, \ArrayAccess
 
     public function __clone()
     {
-        if (\is_object($this->items) && is_cloneable($this->items)) {
-            $this->items = clone $this->items;
+        if (is_object($this->items)) {
+            try {
+                $this->items = clone $this->items;
+            } catch (\Error $ex) {
+                throw new RuntimeException(
+                    'Unable to clone collection items',
+                    previous: $ex
+                );
+            }
         }
     }
 
-    public function offsetSet($offset, $value)
+    public function offsetSet($offset, $value): void
     {
         $items = $this->raw();
         $items[$offset] = $value;
@@ -36,17 +63,17 @@ class Collection implements CollectionInterface, \Countable, \ArrayAccess
         $this->items = new static($items);
     }
 
-    public function offsetGet($offset)
+    public function offsetGet(mixed $offset): mixed
     {
         return $this->raw()[$offset] ?? null;
     }
 
-    public function offsetExists($offset)
+    public function offsetExists($offset): bool
     {
         return isset($this->raw()[$offset]);
     }
 
-    public function offsetUnset($offset)
+    public function offsetUnset($offset): void
     {
         $items = $this->raw();
         unset($items[$offset]);
@@ -54,22 +81,22 @@ class Collection implements CollectionInterface, \Countable, \ArrayAccess
         $this->items = new static($items);
     }
 
-    public function map(callable $callback): CollectionInterface
+    public function map(callable $callback): static
     {
         $self = clone $this;
         return new static(generator(function () use ($self, $callback) {
             foreach ($self as $key => $value) {
-                yield $key => \call_user_func($callback, $value);
+                yield $key => $callback($value);
             }
         }));
     }
 
-    public function filter(callable $callback): CollectionInterface
+    public function filter(callable $callback): static
     {
-        return new static(new \CallbackFilterIterator(new \ArrayIterator($this->raw()), $callback));
+        return new static(new CallbackFilterIterator(new ArrayIterator($this->raw()), $callback));
     }
 
-    public function sort(callable $callback, string $sortFunction = 'usort'): CollectionInterface
+    public function sort(callable $callback, string $sortFunction = 'usort'): static
     {
         $items = $this->raw();
         $sortFunction($items, $callback);
@@ -77,29 +104,24 @@ class Collection implements CollectionInterface, \Countable, \ArrayAccess
         return new static($items);
     }
 
-    public function reduce(callable $callback, $initial = null)
+    public function reduce(callable $callback, mixed $initial = null): static
     {
         $result = $initial;
         foreach ($this as $value) {
-            $result = \call_user_func($callback, $result, $value);
+            $result = $callback($result, $value);
         }
 
         return $result;
     }
 
-    public function slice(int $offset, int $limit = -1): CollectionInterface
+    public function slice(int $offset, int $limit = -1): static
     {
         return new static(
-            new \LimitIterator($this, $offset, $limit)
+            new LimitIterator($this, $offset, $limit)
         );
     }
 
-    /**
-     * @param mixed $item
-     *
-     * @return mixed|null
-     */
-    public function find($item)
+    public function find(mixed $item): mixed
     {
         $self = clone $this;
         foreach ($self as $index => $value) {
@@ -111,12 +133,12 @@ class Collection implements CollectionInterface, \Countable, \ArrayAccess
         return null;
     }
 
-    public function current()
+    public function current(): mixed
     {
         return $this->items->current();
     }
 
-    public function key()
+    public function key(): mixed
     {
         return $this->items->key();
     }
@@ -136,70 +158,77 @@ class Collection implements CollectionInterface, \Countable, \ArrayAccess
         return $this->items->valid();
     }
 
-    public function count()
+    public function count(): int
     {
-        return \count($this->raw());
+        return count($this->raw());
     }
 
-    public function keys(): CollectionInterface
+    public function keys(): static
     {
-        return new static(\array_keys($this->raw()));
+        return new static(array_keys($this->raw()));
     }
 
-    public function values(): CollectionInterface
+    public function values(): static
     {
-        return new static(\array_values($this->raw()));
+        return new static(array_values($this->raw()));
     }
 
     public function each(callable $callback): void
     {
         foreach ($this as $key => $value) {
-            \call_user_func($callback, $value, $key);
+            $callback($value, $key);
         }
     }
 
     public function implode(string $separator): string
     {
-        return \implode($separator, (array) \iterator_to_array($this));
+        return implode($separator, iterator_to_array($this));
     }
 
-    public function append(iterable $items): CollectionInterface
+    public function append(iterable $items): static
     {
-        if (\is_array($items)) {
-            $items = new \ArrayIterator($items);
+        if (is_array($items)) {
+            $items = new ArrayIterator($items);
         }
 
         $iterator = $this->items;
-        if (!$iterator instanceof \AppendIterator) {
-            $iterator = new \AppendIterator($this);
+        if (!$iterator instanceof AppendIterator) {
+            $iterator = new AppendIterator();
+            $iterator->append($this);
         }
 
-        $iterator->append($items);
+        $iterator->append(new IteratorIterator($items));
 
         return new static($iterator);
     }
 
-    public function prepend(iterable $items): CollectionInterface
+    public function remove($item): static
     {
-        if (\is_array($items)) {
-            $items = new \ArrayIterator($items);
+        return $this->filter(fn ($existing) => $existing !== $item);
+    }
+
+    public function prepend(iterable $items): static
+    {
+        if (is_array($items)) {
+            $items = new ArrayIterator($items);
         }
 
-        $iterator = new \AppendIterator($items);
+        $iterator = new AppendIterator();
         $iterator->append($this);
+        $iterator->append(new IteratorIterator($items));
 
         return new static($iterator);
     }
 
-    public function unique(): CollectionInterface
+    public function unique(): static
     {
         $self = clone $this;
 
-        return new self(generator(function () use ($self) {
+        return new static(generator(function () use ($self) {
             $values = [];
 
             foreach ($self as $key => $value) {
-                if (!\in_array($value, $values)) {
+                if (!in_array($value, $values, true)) {
                     $values[] = $value;
 
                     yield $key => $value;
@@ -208,12 +237,12 @@ class Collection implements CollectionInterface, \Countable, \ArrayAccess
         }));
     }
 
-    public function contains($item)
+    public function contains(mixed $item): bool
     {
         return $this->find($item) !== null;
     }
 
-    public function intersect(iterable ... $elements)
+    public function intersect(iterable ...$elements): static
     {
         $result = [];
         $self = clone $this;
@@ -235,30 +264,31 @@ class Collection implements CollectionInterface, \Countable, \ArrayAccess
         return new static($result);
     }
 
-    public function diff(iterable ... $elements)
+    public function diff(iterable ...$elements): static
     {
         $self = clone $this;
 
-        $generator = function () use ($self, $elements) {
-            foreach ($self as $key => $value) {
-                foreach ($elements as $element) {
-                    if (!$element instanceof CollectionInterface) {
-                        $element = new static($element);
+        $generator =
+            function () use ($self, $elements): Generator {
+                foreach ($self as $key => $value) {
+                    foreach ($elements as $element) {
+                        if (!$element instanceof CollectionInterface) {
+                            $element = new static($element);
+                        }
+
+                        if ($element->contains($value)) {
+                            continue 2;
+                        }
                     }
 
-                    if ($element->contains($value)) {
-                        continue 2;
-                    }
+                    yield $key => $value;
                 }
-
-                yield $key => $value;
-            }
-        };
+            };
 
         return new static(generator($generator));
     }
 
-    public function combine(iterable $values, int $mode = self::USE_VALUES_ONLY)
+    public function combine(iterable $values, int $mode = self::USE_VALUES_ONLY): static
     {
         $values = generator(function () use ($values) {
             foreach ($values as $key => $value) {
@@ -266,44 +296,45 @@ class Collection implements CollectionInterface, \Countable, \ArrayAccess
             }
         });
 
-        if (\count($this) !== \count($values)) {
-            throw new \InvalidArgumentException(\sprintf(
+        if (!is_countable($values) || count($this) !== count($values)) {
+            throw new InvalidArgumentException(sprintf(
                 'Values count (%d) must be equal to key count (%d)',
-                \count($values),
-                \count($this)
+                is_countable($values) ? count($values) : -1,
+                count($this)
             ));
         }
 
         $self = clone $this;
-        $generator = function () use ($self, $values, $mode) {
-            $self->rewind();
-            $values->rewind();
+        $generator =
+            function () use ($self, $values, $mode): Generator {
+                $self->rewind();
+                $values->rewind();
 
-            while ($self->valid() && $values->valid()) {
-                $key = $self->current();
-                if (($mode & self::USE_KEYS_ONLY) === self::USE_KEYS_ONLY) {
-                    $key = $self->key();
+                while ($self->valid() && $values->valid()) {
+                    $key = $self->current();
+                    if (($mode & self::USE_KEYS_ONLY) === self::USE_KEYS_ONLY) {
+                        $key = $self->key();
+                    }
+
+                    yield $key => $values->current();
+
+                    $self->next();
+                    $values->next();
                 }
-
-                yield $key => $values->current();
-
-                $self->next();
-                $values->next();
-            }
-        };
+            };
 
         return new static(generator($generator));
     }
 
-    public function pad(int $length, $padding, int $direction = self::PAD_RIGHT)
+    public function pad(int $length, mixed $padding, int $direction = self::PAD_RIGHT): static
     {
-        $itemsCount = \count($this);
+        $itemsCount = count($this);
         $count = $length - $itemsCount;
 
         $result = $this;
         if (($direction & self::PAD_RIGHT) === self::PAD_RIGHT) {
             $suffix = [];
-            for ($i=0; $i<$count; $i++) {
+            for ($i = 0; $i < $count; $i++) {
                 $suffix[] = $padding;
             }
 
@@ -312,7 +343,7 @@ class Collection implements CollectionInterface, \Countable, \ArrayAccess
 
         if (($direction & self::PAD_LEFT) === self::PAD_LEFT) {
             $prefix = [];
-            for ($i=0; $i<$count; $i++) {
+            for ($i = 0; $i < $count; $i++) {
                 $prefix[] = $prefix;
             }
 
@@ -322,28 +353,29 @@ class Collection implements CollectionInterface, \Countable, \ArrayAccess
         return $result;
     }
 
-    public function reverse()
+    public function reverse(): static
     {
-        return new static(\array_reverse($this->raw(), true));
+        return new static(array_reverse($this->raw(), true));
     }
 
-    public function flip()
+    public function flip(): static
     {
         $self = clone $this;
-        $generator = function () use ($self) {
-            while ($self->valid()) {
-                yield $self->current() => $self->key();
-                $self->next();
-            }
-        };
+        $generator =
+            function () use ($self): Generator {
+                while ($self->valid()) {
+                    yield $self->current() => $self->key();
+                    $self->next();
+                }
+            };
 
         return new static(generator($generator));
     }
 
-    public function validate(callable $callback)
+    public function validate(callable $callback): bool
     {
         foreach ($this as $key => $value) {
-            if (!\call_user_func($callback, $value, $key)) {
+            if (!$callback($value, $key)) {
                 return false;
             }
         }
@@ -351,29 +383,29 @@ class Collection implements CollectionInterface, \Countable, \ArrayAccess
         return true;
     }
 
-    public function when(callable $expression, callable $callback)
+    public function when(callable $expression, callable $callback): static
     {
         $self = clone $this;
         foreach ($self as $key => $value) {
-            if (\call_user_func($expression, $value, $key)) {
-                \call_user_func($callback, $value, $key);
+            if ($expression($value, $key)) {
+                $callback($value, $key);
             }
         }
 
         return $this;
     }
 
-    public function group(callable $grouping)
+    public function group(callable $grouping): static
     {
         $result = [];
         foreach ($this as $key => $value) {
-            $result[\call_user_func($grouping, $value, $key)][] = $value;
+            $result[$grouping($value, $key)][] = $value;
         }
 
         return new static($result);
     }
 
-    public function join(iterable ... $iterables)
+    public function join(iterable ...$iterables): static
     {
         $self = clone $this;
         return new static(generator(function () use ($iterables, $self) {
@@ -387,29 +419,29 @@ class Collection implements CollectionInterface, \Countable, \ArrayAccess
         }));
     }
 
-    public function serialize(string $serializeFn = 'serialize')
+    public function serialize(callable|string $fn = 'serialize'): static
     {
         $self = clone $this;
-        return new static(generator(function () use ($self, $serializeFn) {
+        return new static(generator(function () use ($self, $fn) {
             foreach ($self as $key => $value) {
-                yield $key => \call_user_func($serializeFn, $value);
+                yield $key => $fn($value);
             }
         }));
     }
 
-    public function unserialize(string $unserializeFn = 'unserialize')
+    public function unserialize(callable|string $fn = 'unserialize'): static
     {
         $self = clone $this;
-        return new static(generator(function () use ($self, $unserializeFn) {
+        return new static(generator(function () use ($self, $fn) {
             foreach ($self as $key => $value) {
-                yield $key => \call_user_func($unserializeFn, $value);
+                yield $key => $fn($value);
             }
         }));
     }
 
     public function raw(): array
     {
-        $values = (array) \iterator_to_array($this, true);
+        $values = iterator_to_array($this, true);
         foreach ($values as $key => $value) {
             if ($value instanceof CollectionInterface) {
                 $values[$key] = $value->raw();
@@ -419,7 +451,7 @@ class Collection implements CollectionInterface, \Countable, \ArrayAccess
         return $values;
     }
 
-    public static function aggregate(iterable $collections): CollectionInterface
+    public static function aggregate(iterable $collections): static
     {
         return new static(generator(function () use ($collections) {
             foreach ($collections as $collection) {

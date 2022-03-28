@@ -1,23 +1,22 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
 namespace Onion\Framework\Common\Config;
 
-use function Onion\Framework\Common\merge;
-use function Onion\Framework\Common\normalize_tree_keys;
-use Onion\Framework\Common\Config\Interfaces\LoaderInterface;
-use Onion\Framework\Common\Config\Interfaces\ReaderInterface;
+use Onion\Framework\Collection\Collection;
+use Onion\Framework\Config\Interfaces\{LoaderInterface, ReaderInterface};
+
+use function Onion\Framework\Common\{merge, normalize_tree_keys};
 
 class Loader implements LoaderInterface
 {
     private const DEFAULT_KEY_SEPARATOR = '.';
 
-    private $readers = [];
-    private $separator;
+    private array $readers = [];
 
-    private $processed = [];
-
-    public function __construct(string $defaultSeparator = self::DEFAULT_KEY_SEPARATOR)
+    public function __construct(private readonly string $separator = self::DEFAULT_KEY_SEPARATOR)
     {
-        $this->separator = $defaultSeparator;
     }
 
     public function registerReader(array $extensions, ReaderInterface $reader): void
@@ -35,53 +34,38 @@ class Loader implements LoaderInterface
             );
         }
 
-        $iteratorOptions = \RecursiveDirectoryIterator::FOLLOW_SYMLINKS | \RecursiveDirectoryIterator::SKIP_DOTS;
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($directory, $iteratorOptions)
+        $registeredExtensions = array_keys($this->readers);
+        $collection = new Collection(
+            new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator(
+                    $directory,
+                    \RecursiveDirectoryIterator::FOLLOW_SYMLINKS | \RecursiveDirectoryIterator::SKIP_DOTS,
+                ),
+            )
         );
 
-        $registeredExtensions = array_keys($this->readers);
-        $iterator = new \CallbackFilterIterator(
-            $iterator,
-            function (\SplFileInfo $item) use ($registeredExtensions, $environment) {
-                return in_array($item->getExtension(), $registeredExtensions) &&
-                    (
-                        stripos($item->getFilename(), ".{$environment}.") !== false ||
-                        stripos($item->getFilename(), '.global.') !== false ||
-                        stripos($item->getFilename(), '.local.') !== false
-                    );
-            });
+        return merge(
+            [],
+            ...$collection
+                ->filter(
+                    fn (\SplFileInfo $item) =>
+                    in_array($item->getExtension(), $registeredExtensions) &&
+                        preg_match("/\.(global|local|{$environment})\./i", $item->getFilename()) === 1
+                )
+                ->map(fn (\SplFileInfo $item) => $this->loadFile($item->getRealPath()))
 
-        $configuration = [];
-        foreach ($iterator as $item) {
-            if (!isset($this->readers[$item->getExtension()])) {
-                throw new \RuntimeException("No reader registered for extension '{$item->getExtension()}'");
-            }
-
-            if (in_array($item->getRealPath(), $this->processed)) {
-                continue;
-            }
-
-            $target = normalize_tree_keys($this->readers[$item->getExtension()]->parse(
-                $item->getRealPath()
-            ), $this->separator);
-
-            $configuration = merge($configuration, $target);
-            $this->processed[] = $item->getRealPath();
-        }
-
-        return $configuration;
+        );
     }
 
     public function loadDirectories(string $environment, array $directories): array
     {
-        $result = [];
-
-        foreach ($directories as $directory) {
-            $result = merge($result, $this->loadDirectory($environment, $directory));
-        }
-
-        return $result;
+        return merge(
+            [],
+            ...array_map(
+                fn (string $directory): array => $this->loadDirectory($environment, $directory),
+                $directories
+            )
+        );
     }
 
     public function loadFile(string $filename): array
@@ -101,7 +85,7 @@ class Loader implements LoaderInterface
         return normalize_tree_keys(
             $this->readers[$file->getExtension()]->parse(
                 $file->getRealPath()
-            ),
+            ) ?? [],
             $this->separator
         );
     }

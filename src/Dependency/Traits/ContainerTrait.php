@@ -1,7 +1,9 @@
 <?php
-namespace Onion\Framework\Common\Dependency\Traits;
+
+namespace Onion\Framework\Dependency\Traits;
 
 use Onion\Framework\Dependency\Exception\ContainerErrorException;
+use RuntimeException;
 
 trait ContainerTrait
 {
@@ -15,7 +17,7 @@ trait ContainerTrait
         if (interface_exists($identifier) || class_exists($identifier)) {
             assert(
                 $result instanceof $identifier,
-                new ContainerErrorException(sprintf(
+                new RuntimeException(sprintf(
                     'Unable to verify that "%s" is of type "%s"',
                     get_class($result),
                     $identifier
@@ -28,8 +30,7 @@ trait ContainerTrait
 
     protected function isKeyValid($key): bool
     {
-        return is_string($key) || is_scalar($key) ||
-            (is_object($key) && method_exists($key, '__toString'));
+        return is_string($key) || is_scalar($key) || (is_string($key) && class_exists($key)) || (is_object($key) && method_exists($key, '__toString'));
     }
 
     protected function formatType(?\ReflectionType $type): string
