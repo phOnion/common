@@ -14,6 +14,11 @@ trait ContainerTrait
 
     protected function enforceReturnType(string $identifier, mixed $result): object
     {
+        assert(
+            is_object($result),
+            new RuntimeException("No factory available to build {$identifier}"),
+        );
+
         if (interface_exists($identifier) || class_exists($identifier)) {
             assert(
                 $result instanceof $identifier,
