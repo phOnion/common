@@ -12,7 +12,7 @@ trait ContainerTrait
         return str_replace('\\', '', strtolower(preg_replace('/(?<!^)[A-Z]/', '.$0', $name)));
     }
 
-    protected function enforceReturnType(string $identifier, object $result): object
+    protected function enforceReturnType(string $identifier, mixed $result): object
     {
         if (interface_exists($identifier) || class_exists($identifier)) {
             assert(
