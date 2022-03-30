@@ -27,7 +27,7 @@ trait DelegateContainerTrait
         return $this->containers;
     }
 
-    public function has($id)
+    public function has($id): bool
     {
         foreach ($this->getAttachedContainers() as $container) {
             /** @var ContainerInterface $container */

@@ -3,6 +3,7 @@
 namespace Onion\Framework\Dependency\Traits;
 
 use RuntimeException;
+use Stringable;
 
 trait ContainerTrait
 {
@@ -29,7 +30,7 @@ trait ContainerTrait
 
     protected function isKeyValid($key): bool
     {
-        return is_string($key) || is_scalar($key) || (is_string($key) && class_exists($key)) || (is_object($key) && method_exists($key, '__toString'));
+        return is_string($key) || is_scalar($key) || (is_string($key) && class_exists($key)) || (is_object($key) && method_exists($key, '__toString') || $key instanceof Stringable);
     }
 
     protected function formatType(?\ReflectionType $type): string
