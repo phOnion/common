@@ -4,6 +4,7 @@ namespace Onion\Framework\Collection;
 
 use Closure;
 use Onion\Framework\Collection\Interfaces\CollectionInterface;
+use Onion\Framework\Collection\Types\CollectionPart;
 
 use function Onion\Framework\generator;
 
@@ -12,21 +13,21 @@ class StringCollection extends Collection implements CollectionInterface
     /**
      * @return static
      */
-    public function lowercase(int $mode = self::USE_VALUES_ONLY): static
+    public function lowercase(CollectionPart $mode = CollectionPart::VALUES): static
     {
         $self = clone $this;
         return match ($mode) {
-            self::USE_KEYS_ONLY => new static(generator(function () use ($self) {
+            CollectionPart::KEYS => new static(generator(function () use ($self) {
                 foreach ($self as $key => $value) {
                     yield \strtolower((string) $key) => $value;
                 }
             })),
-            self::USE_VALUES_ONLY => new static(generator(function () use ($self) {
+            CollectionPart::VALUES => new static(generator(function () use ($self) {
                 foreach ($self as $key => $value) {
                     yield $key => \strtolower((string) $value);
                 }
             })),
-            self::USE_BOTH => new static(generator(function () use ($self) {
+            CollectionPart::BOTH => new static(generator(function () use ($self) {
                 foreach ($self as $key => $value) {
                     yield \strtolower((string) $key) => \strtolower((string) $value);
                 }
@@ -34,21 +35,21 @@ class StringCollection extends Collection implements CollectionInterface
         };
     }
 
-    public function uppercase(int $mode = self::USE_BOTH): static
+    public function uppercase(CollectionPart $mode = CollectionPart::BOTH): static
     {
         $self = clone $this;
         return match ($mode) {
-            self::USE_KEYS_ONLY => new static(generator(function () use ($self) {
+            CollectionPart::KEYS => new static(generator(function () use ($self) {
                 foreach ($self as $key => $value) {
                     yield \strtoupper((string) $key) => $value;
                 }
             })),
-            self::USE_VALUES_ONLY => new static(generator(function () use ($self) {
+            CollectionPart::VALUES => new static(generator(function () use ($self) {
                 foreach ($self as $key => $value) {
                     yield $key => \strtoupper((string) $value);
                 }
             })),
-            self::USE_BOTH => new static(generator(function () use ($self) {
+            CollectionPart::BOTH => new static(generator(function () use ($self) {
                 foreach ($self as $key => $value) {
                     yield \strtoupper((string) $key) => \strtoupper((string) $value);
                 }
@@ -56,21 +57,21 @@ class StringCollection extends Collection implements CollectionInterface
         };
     }
 
-    public function words(int $mode = self::USE_VALUES_ONLY, string $delimiter = " \t\r\n\f\v"): static
+    public function words(CollectionPart $mode = CollectionPart::BOTH, string $delimiter = " \t\r\n\f\v"): static
     {
         $self = clone $this;
         return match ($mode) {
-            self::USE_KEYS_ONLY => new static(generator(function () use ($self, $delimiter) {
+            CollectionPart::KEYS => new static(generator(function () use ($self, $delimiter) {
                 foreach ($self as $key => $value) {
                     yield \ucwords((string) $key, $delimiter) => $value;
                 }
             })),
-            self::USE_VALUES_ONLY => new static(generator(function () use ($self, $delimiter) {
+            CollectionPart::VALUES => new static(generator(function () use ($self, $delimiter) {
                 foreach ($self as $key => $value) {
                     yield $key => \ucwords((string) $value, $delimiter);
                 }
             })),
-            self::USE_BOTH => new static(generator(function () use ($self, $delimiter) {
+            CollectionPart::BOTH => new static(generator(function () use ($self, $delimiter) {
                 foreach ($self as $key => $value) {
                     yield \ucwords((string) $key, $delimiter) => \ucwords((string) $value);
                 }

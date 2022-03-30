@@ -13,6 +13,8 @@ use Iterator;
 use IteratorIterator;
 use LimitIterator;
 use Onion\Framework\Collection\Interfaces\CollectionInterface;
+use Onion\Framework\Collection\Types\CollectionPad;
+use Onion\Framework\Collection\Types\CollectionPart;
 use RuntimeException;
 
 use function array_keys;
@@ -288,7 +290,7 @@ class Collection implements CollectionInterface
         return new static(generator($generator));
     }
 
-    public function combine(iterable $values, int $mode = self::USE_VALUES_ONLY): static
+    public function combine(iterable $values, CollectionPart $mode = CollectionPart::VALUES): static
     {
         $values = generator(function () use ($values) {
             foreach ($values as $key => $value) {
@@ -312,7 +314,7 @@ class Collection implements CollectionInterface
 
                 while ($self->valid() && $values->valid()) {
                     $key = $self->current();
-                    if (($mode & self::USE_KEYS_ONLY) === self::USE_KEYS_ONLY) {
+                    if ($mode === CollectionPart::KEYS) {
                         $key = $self->key();
                     }
 
@@ -326,13 +328,13 @@ class Collection implements CollectionInterface
         return new static(generator($generator));
     }
 
-    public function pad(int $length, mixed $padding, int $direction = self::PAD_RIGHT): static
+    public function pad(int $length, mixed $padding, CollectionPad $direction = CollectionPad::RIGHT): static
     {
         $itemsCount = count($this);
         $count = $length - $itemsCount;
 
         $result = $this;
-        if (($direction & self::PAD_RIGHT) === self::PAD_RIGHT) {
+        if ($direction === CollectionPad::RIGHT) {
             $suffix = [];
             for ($i = 0; $i < $count; $i++) {
                 $suffix[] = $padding;
@@ -341,7 +343,7 @@ class Collection implements CollectionInterface
             $result = $this->append($suffix);
         }
 
-        if (($direction & self::PAD_LEFT) === self::PAD_LEFT) {
+        if ($direction === CollectionPad::LEFT) {
             $prefix = [];
             for ($i = 0; $i < $count; $i++) {
                 $prefix[] = $prefix;
