@@ -2,7 +2,6 @@
 
 namespace Onion\Framework\Dependency\Traits;
 
-use Onion\Framework\Dependency\Exception\ContainerErrorException;
 use RuntimeException;
 
 trait ContainerTrait

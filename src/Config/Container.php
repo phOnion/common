@@ -1,6 +1,6 @@
 <?php
 
-namespace Onion\Framework\Common\Config;
+namespace Onion\Framework\Config;
 
 use Closure;
 use Onion\Framework\Dependency\Traits\AttachableContainerTrait;

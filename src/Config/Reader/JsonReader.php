@@ -1,6 +1,6 @@
 <?php
 
-namespace Onion\Framework\Common\Config\Reader;
+namespace Onion\Framework\Config\Reader;
 
 use Onion\Framework\Config\Interfaces\ReaderInterface;
 

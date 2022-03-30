@@ -2,7 +2,7 @@
   "name": "onion/common",
   "autoload": {
     "psr-4": {
-      "Onion\\Framework\\Common\\": "src/"
+      "Onion\\Framework\\": "src/"
     },
     "files": [
       "src/functions.php"

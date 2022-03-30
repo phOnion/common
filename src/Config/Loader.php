@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Onion\Framework\Common\Config;
+namespace Onion\Framework\Config;
 
 use Onion\Framework\Collection\Collection;
 use Onion\Framework\Config\Interfaces\{LoaderInterface, ReaderInterface};
 
-use function Onion\Framework\Common\{merge, normalize_tree_keys};
+use function Onion\Framework\{merge, normalize_tree_keys};
 
 class Loader implements LoaderInterface
 {
