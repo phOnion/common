@@ -9,7 +9,7 @@ use Onion\Framework\Dependency\Interfaces\AttachableContainer;
 use Onion\Framework\Proxy\LazyFactory;
 use Psr\Container\ContainerInterface;
 
-use function Onion\Framework\Common\find_by_separator;
+use function Onion\Framework\find_by_separator;
 
 class Container implements ContainerInterface, AttachableContainer
 {

@@ -7,7 +7,7 @@ namespace Onion\Framework\Config\Factory;
 use Onion\Framework\Dependency\Interfaces\FactoryInterface;
 use Psr\Container\ContainerInterface;
 use Onion\Framework\Config\Interfaces\ReaderInterface as ReaderInterface;
-use Onion\Framework\Common\Config\Loader as ConfigLoader;
+use Onion\Framework\Config\Loader as ConfigLoader;
 
 class LoaderFactory implements FactoryInterface
 {
