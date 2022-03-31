@@ -65,16 +65,7 @@ if (!function_exists(__NAMESPACE__ . '\find_by_separator')) {
     function find_by_separator(array $storage, string $key, string $separator = '.')
     {
         $fragments = explode($separator, $key);
-        return array_reduce($storage, function ($value, $item) use ($fragments): mixed {
-            $key = array_shift($fragments);
-            if (!isset($value[$key])) {
-                throw new \LogicException(
-                    "Unable to resolve '{$key}' of '{$key}'"
-                );
-            }
 
-            return $value[$key];
-        }, $storage);
         $cursor = &$storage;
         while ($fragments !== []) {
             $key = array_shift($fragments);
