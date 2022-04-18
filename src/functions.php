@@ -54,6 +54,10 @@ if (!function_exists(__NAMESPACE__ . '\normalize_tree_keys')) {
                 $ptr = &$ptr[$key];
             }
 
+            if (!is_array($ptr)) {
+                $ptr = [];
+            }
+
             $ptr[array_shift($parts)] = $value;
         }
 
