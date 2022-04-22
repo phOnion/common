@@ -95,7 +95,7 @@ class Collection implements CollectionInterface
 
     public function filter(callable $callback): static
     {
-        return new static(new CallbackFilterIterator(new ArrayIterator($this->raw()), $callback));
+        return new static(new CallbackFilterIterator($this, $callback));
     }
 
     public function sort(callable $callback, string $sortFunction = 'usort'): static
