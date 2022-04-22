@@ -36,11 +36,7 @@ class Collection implements CollectionInterface
 
     public function __construct(iterable $items)
     {
-        $this->items = generator(function () use ($items) {
-            foreach ($items as $key => $value) {
-                yield $key => $value;
-            }
-        });
+        $this->items = generator($items);
     }
 
     public function __clone()
